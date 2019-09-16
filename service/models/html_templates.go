@@ -17,7 +17,7 @@ const emptySlotTemplate = `
   	</div>
 `
 const PlayerTemplate = `
-	<div class="column" style="background-color:#ccc; border-style: solid; border-color: coral;">
+	<div class="column" style="background-color:#58ACFA; border-style: solid; border-color: coral;">
     	<p>%s</p>
   	</div>
 `

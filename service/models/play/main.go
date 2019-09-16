@@ -19,4 +19,9 @@ func main() {
 	log.Printf("GridSize: %d, TreasureAmount: %d\n", *gridSize, *treasureAmount)
 	game := models.NewGame(*gridSize, *treasureAmount)
 	fmt.Println(game.GetGridView())
+	log.Println("=============================================================")
+	log.Println(game.PlacePlayer("CWJ", 0, 1))
+	log.Println(game.PlacePlayer("FC", 3, 3))
+	log.Println(game.PlacePlayer("TY", 2, 3))
+	fmt.Println(game.GetGridView())
 }
