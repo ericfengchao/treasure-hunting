@@ -1,17 +1,23 @@
 package models
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
 
 type game struct {
+	// static states
 	grid           *Grid
 	treasureAmount int
+
+	// active states
+	playerList []*player
 }
 
 func (g *game) GetGridView() string {
-	return g.grid.ToGridView()
+	gridView := g.grid.ToGridView()
+	return fmt.Sprintf(Html, gridView)
 }
 
 func generateNUniqueRandomNumbers(n int, max int) []int {
