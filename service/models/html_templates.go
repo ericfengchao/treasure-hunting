@@ -22,6 +22,21 @@ const PlayerTemplate = `
   	</div>
 `
 
+const PlayerStatesList = `
+<div class="block">
+	<div class="row">
+		<p>Player: Score </p>
+	</div>
+	%s
+</div>
+`
+
+const PlayerState = `
+	<div class="row">
+		<p>%s: %d</p>
+	</div>
+`
+
 const Html = `
 <!DOCTYPE html>
 <html>
@@ -30,6 +45,16 @@ const Html = `
 <style>
 * {
   box-sizing: border-box;
+}
+
+.left {
+  float: left;
+  width: 50%%;
+}
+
+.right {
+  float: right;
+  width: 50%%;
 }
 
 /* Create two equal columns that floats next to each other */
@@ -51,7 +76,14 @@ const Html = `
 </style>
 </head>
 <body>
-	%s
+
+<div class="left">
+%s
+</div>
+
+<div class="right">
+%s
+</div>
 </body>
 </html>
 `

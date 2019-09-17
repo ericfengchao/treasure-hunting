@@ -23,6 +23,10 @@ func (s *slot) placePlayer(playerId string) {
 	s.player = playerId
 }
 
+func (s *slot) removePlayer() {
+	s.player = ""
+}
+
 func (s *slot) placeTreasure() {
 	s.treasure = true
 }
@@ -55,6 +59,10 @@ func (g *grid) placePlayer(playerId string, row, col int) bool {
 	}
 	g.slots[row][col].placePlayer(playerId)
 	return huntedTreasure
+}
+
+func (g *grid) removePlayer(row, col int) {
+	g.slots[row][col].removePlayer()
 }
 
 func (g *grid) toGridView() string {
@@ -99,5 +107,6 @@ type gridder interface {
 	isPlaceable(row, col int) error
 
 	placePlayer(playerId string, row, col int) bool
+	removePlayer(row, col int)
 	placeTreasure(treasurePlace int)
 }

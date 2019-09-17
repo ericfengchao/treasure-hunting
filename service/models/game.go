@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -44,8 +45,8 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 
 	// place new treasure if required
 	if huntedTreasure {
-		var newTreasure int // TODO generate new treasure coordinates
-		g.grid.placeTreasure(newTreasure)
+		//var newTreasure int // TODO generate new treasure coordinates
+		//g.grid.placeTreasure(newTreasure)
 	}
 
 	// update player states
@@ -53,6 +54,9 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 		if huntedTreasure {
 			p.score = p.score + 1
 		}
+		// remove player from current pos
+		g.grid.removePlayer(p.currentRow, p.currentCol)
+		// update pos to latest
 		p.currentRow = row
 		p.currentCol = col
 	} else {
@@ -76,7 +80,16 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 
 func (g *game) GetGridView() string {
 	gridView := g.grid.toGridView()
-	return fmt.Sprintf(Html, gridView)
+	playerStates := g.getPlayerStatesListHtml()
+	return fmt.Sprintf(Html, playerStates, gridView)
+}
+
+func (g *game) getPlayerStatesListHtml() string {
+	var players []string
+	for _, p := range g.playerList {
+		players = append(players, p.getPlayerStateHtml())
+	}
+	return fmt.Sprintf(PlayerStatesList, strings.Join(players, ""))
 }
 
 func NewGame(gridSize int, treasureAmount int) Gamer {
