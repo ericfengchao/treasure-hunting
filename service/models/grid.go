@@ -7,11 +7,11 @@ import (
 
 type slot struct {
 	treasure bool   // true means treasure, false means no treasure
-	player   string // empty string means non player taken
+	playerId string // empty string means non Player taken
 }
 
 func (s *slot) isOccupied() bool {
-	return s.player != ""
+	return s.playerId != ""
 }
 
 func (s *slot) hasTreasure() bool {
@@ -19,12 +19,12 @@ func (s *slot) hasTreasure() bool {
 }
 
 func (s *slot) placePlayer(playerId string) {
-	s.treasure = false // player will take the treasure here if any
-	s.player = playerId
+	s.treasure = false // Player will take the treasure here if any
+	s.playerId = playerId
 }
 
 func (s *slot) removePlayer() {
-	s.player = ""
+	s.playerId = ""
 }
 
 func (s *slot) placeTreasure() {
@@ -73,8 +73,8 @@ func (g *grid) toGridView() string {
 			slotHtml := emptySlotTemplate
 			if slot.treasure {
 				slotHtml = treasureTemplate
-			} else if slot.player != "" {
-				slotHtml = fmt.Sprintf(PlayerTemplate, slot.player)
+			} else if slot.playerId != "" {
+				slotHtml = fmt.Sprintf(PlayerTemplate, slot.playerId)
 			}
 			items = append(items, slotHtml)
 		}

@@ -1,8 +1,11 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	game_pb "github.com/ericfengchao/treasure-hunting/service/protos"
+)
 
-type player struct {
+type Player struct {
 	id         string // 2 char identifier
 	host       string
 	port       int
@@ -11,6 +14,20 @@ type player struct {
 	currentCol int
 }
 
-func (p player) getPlayerStateHtml() string {
+func (p Player) getPlayerStateHtml() string {
 	return fmt.Sprintf(PlayerState, p.id, p.score)
+}
+
+func (p *Player) ToPlayerProto() *game_pb.PlayerState {
+	if p == nil {
+		return nil
+	}
+	return &game_pb.PlayerState{
+		PlayerId: p.id,
+		Score:    int32(p.score),
+		CurrentPosition: &game_pb.Coordinate{
+			Row: int32(p.currentRow),
+			Col: int32(p.currentCol),
+		},
+	}
 }

@@ -18,8 +18,8 @@ type game struct {
 	rwLock       *sync.RWMutex
 	stateVersion int // game state version should be atomically incremented
 
-	// player management
-	playerList map[string]*player
+	// Player management
+	playerList map[string]*Player
 }
 
 // atomic step. Either updated all required information as well as synced with slave Or nothing happened
@@ -49,12 +49,12 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 		//g.grid.placeTreasure(newTreasure)
 	}
 
-	// update player states
+	// update Player states
 	if p, ok := g.playerList[playerId]; ok {
 		if huntedTreasure {
 			p.score = p.score + 1
 		}
-		// remove player from current pos
+		// remove Player from current pos
 		g.grid.removePlayer(p.currentRow, p.currentCol)
 		// update pos to latest
 		p.currentRow = row
@@ -64,7 +64,7 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 		if huntedTreasure {
 			score = 1
 		}
-		g.playerList[playerId] = &player{
+		g.playerList[playerId] = &Player{
 			id:         playerId,
 			score:      score,
 			currentRow: row,
@@ -76,6 +76,13 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 	g.stateVersion = g.stateVersion + 1
 
 	return huntedTreasure, nil
+}
+
+func (g *game) GetGameStates() map[string]*Player {
+	g.rwLock.RLock()
+	defer g.rwLock.RUnlock()
+
+	return g.playerList
 }
 
 func (g *game) GetGridView() string {
@@ -99,6 +106,6 @@ func NewGame(gridSize int, treasureAmount int) Gamer {
 		rwLock:         &sync.RWMutex{},
 		treasureAmount: treasureAmount,
 		treasurePlaces: treasurePlaces,
-		playerList:     make(map[string]*player),
+		playerList:     make(map[string]*Player),
 	}
 }
