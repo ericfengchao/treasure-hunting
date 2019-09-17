@@ -2,7 +2,10 @@ package models
 
 import (
 	"fmt"
+	"log"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 type slot struct {
@@ -33,6 +36,11 @@ func (s *slot) placeTreasure() {
 
 type grid struct {
 	slots [][]*slot
+
+	// indices for fast retrieval
+	treasureSlots []int // positions of treasure hiding slots
+	playerSlots   map[string]int
+	emptySlots    []int
 }
 
 func (g *grid) placeTreasure(treasurePlace int) {
@@ -58,7 +66,68 @@ func (g *grid) placePlayer(playerId string, row, col int) bool {
 		huntedTreasure = true
 	}
 	g.slots[row][col].placePlayer(playerId)
+
+	newTreasurePos := -1
+	// update indices
+	newPos := row*len(g.slots[0]) + col
+	if origPos, exists := g.playerSlots[playerId]; exists {
+		g.playerSlots[playerId] = newPos
+		origRow := origPos / len(g.slots[0])
+		origCol := origPos % len(g.slots[0])
+		g.slots[origRow][origCol].removePlayer()
+
+		if huntedTreasure {
+			candidates := append(g.emptySlots, origPos)
+			newTreasurePos = candidates[rand.Intn(len(candidates))]
+			g.emptySlots = removeIntFromSlice(candidates, newTreasurePos)
+			g.treasureSlots = replaceXWithY(g.treasureSlots, newPos, newTreasurePos)
+		} else {
+			g.emptySlots = replaceXWithY(g.emptySlots, newPos, origPos)
+		}
+
+	} else {
+		g.playerSlots[playerId] = newPos
+
+		if huntedTreasure {
+			newTreasurePos = g.emptySlots[rand.Intn(len(g.emptySlots))]
+			g.emptySlots = removeIntFromSlice(g.emptySlots, newTreasurePos)
+			g.treasureSlots = replaceXWithY(g.treasureSlots, newPos, newTreasurePos)
+		} else {
+			g.emptySlots = removeIntFromSlice(g.emptySlots, newPos)
+		}
+	}
+	if huntedTreasure {
+		newTreasureRow, newTreasureCol := newTreasurePos/len(g.slots[0]), newTreasurePos%len(g.slots[0])
+		g.slots[newTreasureRow][newTreasureCol].placeTreasure()
+	}
+	log.Println("============DEBUG==========")
+	log.Println(g.treasureSlots)
+	log.Println(g.playerSlots)
+	log.Println(g.emptySlots)
+	log.Println("============DEBUG==========")
 	return huntedTreasure
+}
+
+func removeIntFromSlice(orig []int, k int) []int {
+	var new []int
+	for _, num := range orig {
+		if num != k {
+			new = append(new, num)
+		}
+	}
+	return new
+}
+
+func replaceXWithY(orig []int, x, y int) []int {
+	var new []int
+	for _, num := range orig {
+		if num == x {
+			new = append(new, y)
+		} else {
+			new = append(new, num)
+		}
+	}
+	return new
 }
 
 func (g *grid) removePlayer(row, col int) {
@@ -84,9 +153,14 @@ func (g *grid) toGridView() string {
 	return strings.Join(allRows, "")
 }
 
-func newGrid(row, col int, treasures []int) gridder {
+func newGrid(row, col int, treasureAmount int) gridder {
+	rand.Seed(time.Now().Unix())
+	shuffledN := rand.Perm(row * col)
 	g := &grid{
-		slots: make([][]*slot, row),
+		slots:         make([][]*slot, row),
+		treasureSlots: shuffledN[:treasureAmount],
+		playerSlots:   make(map[string]int),
+		emptySlots:    shuffledN[treasureAmount:],
 	}
 	for i := 0; i < row; i++ {
 		g.slots[i] = make([]*slot, col)
@@ -94,7 +168,7 @@ func newGrid(row, col int, treasures []int) gridder {
 			g.slots[i][j] = &slot{}
 		}
 	}
-	for _, r := range treasures {
+	for _, r := range g.treasureSlots {
 		i := r / col
 		j := r % col
 		g.slots[i][j].placeTreasure()
@@ -107,6 +181,5 @@ type gridder interface {
 	isPlaceable(row, col int) error
 
 	placePlayer(playerId string, row, col int) bool
-	removePlayer(row, col int)
 	placeTreasure(treasurePlace int)
 }

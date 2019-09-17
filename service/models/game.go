@@ -10,10 +10,6 @@ type game struct {
 	// static states
 	grid gridder
 
-	// treasure management
-	treasurePlaces []int
-	treasureAmount int
-
 	// active states
 	rwLock       *sync.RWMutex
 	stateVersion int // game state version should be atomically incremented
@@ -43,20 +39,11 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 	// once slave is committed, start writing in master only
 	huntedTreasure := g.grid.placePlayer(playerId, row, col)
 
-	// place new treasure if required
-	if huntedTreasure {
-		//var newTreasure int // TODO generate new treasure coordinates
-		//g.grid.placeTreasure(newTreasure)
-	}
-
 	// update Player states
 	if p, ok := g.playerList[playerId]; ok {
 		if huntedTreasure {
 			p.score = p.score + 1
 		}
-		// remove Player from current pos
-		g.grid.removePlayer(p.currentRow, p.currentCol)
-		// update pos to latest
 		p.currentRow = row
 		p.currentCol = col
 	} else {
@@ -100,12 +87,9 @@ func (g *game) getPlayerStatesListHtml() string {
 }
 
 func NewGame(gridSize int, treasureAmount int) Gamer {
-	treasurePlaces := generateNUniqueRandomNumbers(treasureAmount, gridSize*gridSize)
 	return &game{
-		grid:           newGrid(gridSize, gridSize, treasurePlaces),
-		rwLock:         &sync.RWMutex{},
-		treasureAmount: treasureAmount,
-		treasurePlaces: treasurePlaces,
-		playerList:     make(map[string]*Player),
+		grid:       newGrid(gridSize, gridSize, treasureAmount),
+		rwLock:     &sync.RWMutex{},
+		playerList: make(map[string]*Player),
 	}
 }

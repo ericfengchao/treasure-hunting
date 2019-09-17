@@ -5,16 +5,7 @@ import (
 	"time"
 )
 
-func generateNUniqueRandomNumbers(n int, max int) []int {
-	res := make([]int, max)
-	for i := 0; i < max; i++ {
-		res[i] = i
-	}
+func generateNUniqueRandomNumbers(n int) []int {
 	rand.Seed(time.Now().Unix())
-	for i := 0; i < n; i++ {
-		r := rand.Intn(max - i)
-		res[max-i-1], res[r] = res[r], res[max-i-1]
-
-	}
-	return res[:n]
+	return rand.Perm(n)
 }
