@@ -43,10 +43,14 @@ type grid struct {
 	emptySlots    []int
 }
 
-func (g *grid) placeTreasure(treasurePlace int) {
-	row := treasurePlace / len(g.slots)
-	col := treasurePlace % len(g.slots)
-	g.slots[row][col].placeTreasure()
+func (g *grid) getRowCol(pos int) (row int, col int) {
+	numOfColumns := len(g.slots[0])
+	return pos / numOfColumns, pos % numOfColumns
+}
+
+func (g *grid) getPos(row, col int) int {
+	numOfColumns := len(g.slots[0])
+	return row*numOfColumns + col
 }
 
 func (g *grid) isPlaceable(row, col int) error {
@@ -69,11 +73,10 @@ func (g *grid) placePlayer(playerId string, row, col int) bool {
 
 	newTreasurePos := -1
 	// update indices
-	newPos := row*len(g.slots[0]) + col
+	newPos := g.getPos(row, col)
 	if origPos, exists := g.playerSlots[playerId]; exists {
 		g.playerSlots[playerId] = newPos
-		origRow := origPos / len(g.slots[0])
-		origCol := origPos % len(g.slots[0])
+		origRow, origCol := g.getRowCol(origPos)
 		g.slots[origRow][origCol].removePlayer()
 
 		if huntedTreasure {
@@ -96,15 +99,17 @@ func (g *grid) placePlayer(playerId string, row, col int) bool {
 			g.emptySlots = removeIntFromSlice(g.emptySlots, newPos)
 		}
 	}
-	if huntedTreasure {
-		newTreasureRow, newTreasureCol := newTreasurePos/len(g.slots[0]), newTreasurePos%len(g.slots[0])
+	if newTreasurePos != -1 {
+		newTreasureRow, newTreasureCol := g.getRowCol(newTreasurePos)
 		g.slots[newTreasureRow][newTreasureCol].placeTreasure()
 	}
+
 	log.Println("============DEBUG==========")
 	log.Println(g.treasureSlots)
 	log.Println(g.playerSlots)
 	log.Println(g.emptySlots)
 	log.Println("============DEBUG==========")
+
 	return huntedTreasure
 }
 
@@ -130,8 +135,12 @@ func replaceXWithY(orig []int, x, y int) []int {
 	return new
 }
 
-func (g *grid) removePlayer(row, col int) {
-	g.slots[row][col].removePlayer()
+func (g *grid) removePlayer(playerId string) {
+	if origPos, exists := g.playerSlots[playerId]; exists {
+		row, col := g.getRowCol(origPos)
+		g.slots[row][col].removePlayer()
+		g.emptySlots = append(g.emptySlots, origPos)
+	}
 }
 
 func (g *grid) toGridView() string {
@@ -181,5 +190,5 @@ type gridder interface {
 	isPlaceable(row, col int) error
 
 	placePlayer(playerId string, row, col int) bool
-	placeTreasure(treasurePlace int)
+	removePlayer(playerId string)
 }
