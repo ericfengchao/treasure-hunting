@@ -17,9 +17,24 @@ const emptySlotTemplate = `
   	</div>
 `
 const PlayerTemplate = `
-	<div class="column" style="background-color:#ccc; border-style: solid; border-color: coral;">
+	<div class="column" style="background-color:#58ACFA; border-style: solid; border-color: coral;">
     	<p>%s</p>
   	</div>
+`
+
+const PlayerStatesList = `
+<div class="block">
+	<div class="row">
+		<p>Player: Score </p>
+	</div>
+	%s
+</div>
+`
+
+const PlayerState = `
+	<div class="row">
+		<p>%s: %d</p>
+	</div>
 `
 
 const Html = `
@@ -30,6 +45,16 @@ const Html = `
 <style>
 * {
   box-sizing: border-box;
+}
+
+.left {
+  float: left;
+  width: 50%%;
+}
+
+.right {
+  float: right;
+  width: 50%%;
 }
 
 /* Create two equal columns that floats next to each other */
@@ -51,7 +76,14 @@ const Html = `
 </style>
 </head>
 <body>
-	%s
+
+<div class="left">
+%s
+</div>
+
+<div class="right">
+%s
+</div>
 </body>
 </html>
 `
