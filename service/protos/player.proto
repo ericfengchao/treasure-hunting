@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package player_proto;
+
+service PlayerService {
+    rpc TakeSlot (TakeSlotRequest) returns (TakeSlotResponse) {}
+
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse) {}
+}
+
+message Coordinate {
+    int32 row = 1;
+    int32 col = 2;
+}
+
+message TakeSlotRequest {
+    string id = 1;
+    Coordinate move_to_coordinate = 2;
+}
+
+message PlayerState {
+    string player_id = 1;
+    Coordinate current_position = 2;
+    int32 score = 3;
+}
+
+message TakeSlotResponse {
+    enum Status {
+        OK = 0; // ok means no error
+        SLOT_TAKEN = 1; // this slot is taken. Your current position will not change
+        I_AM_NOT_A_SERVER = 2; // host you are requesting is not a server. Try to find the correct primary server
+        I_AM_ONLY_BACKUP = 3; // host you are requesting is only a backup server which takes no write requests. Try to find the correct primary server
+    }
+    Status status = 1;
+    repeated PlayerState player_states = 2;
+}
+
+message Registry {
+    message Player {
+        string id = 1;
+        int32 join_order = 2; // join_order reflect the player's registration order. Smaller number indicates earlier registration
+    }
+    repeated Player players = 1; // all the current registered and alive players
+    int32 version = 2; // higher version indicates more up-to-date registry
+}
+
+message HeartbeatRequest {
+    string player_id = 1;
+    Registry registry = 2;
+}
+
+message HeartbeatResponse {
+}
