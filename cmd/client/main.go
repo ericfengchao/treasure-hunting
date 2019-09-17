@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	game_pb "github.com/ericfengchao/treasure-hunting/service/protos"
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"google.golang.org/grpc"
 	"log"
 )

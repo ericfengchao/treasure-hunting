@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"github.com/ericfengchao/treasure-hunting/service"
-	game_pb "github.com/ericfengchao/treasure-hunting/service/protos"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -21,14 +21,14 @@ func main() {
 	//trackerHost := os.Args[1]
 	//trackerPort := os.Args[2]
 	// register with tracker, confirm own identity
-	//playerId := os.Args[3]
+	playerId := os.Args[3]
 
 	grpcListener, err := net.Listen("tcp", "localhost:50051")
 	if err != nil {
 		log.Fatalf("Failed to listen for grpc: %v", err)
 	}
 
-	gameSvc := service.NewGameSvc(service.PrimaryNode, gridSize, treasureAmount)
+	gameSvc := service.NewGameSvc(service.PrimaryNode, playerId, gridSize, treasureAmount, nil)
 	svr := grpc.NewServer()
 	game_pb.RegisterGameServiceServer(svr, gameSvc)
 

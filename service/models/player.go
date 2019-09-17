@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/service/protos"
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 )
 
 type Player struct {
