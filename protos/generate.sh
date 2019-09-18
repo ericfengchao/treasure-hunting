@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-protoc -I . ./game.proto --go_out=plugins=grpc:./
+protoc -I . ./tracker.proto --go_out=plugins=grpc:./
