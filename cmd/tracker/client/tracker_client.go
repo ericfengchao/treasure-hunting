@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
 
 	tracker_pb "github.com/ericfengchao/treasure-hunting/protos/tracker"
 	"google.golang.org/grpc"
@@ -11,11 +12,15 @@ import (
 
 var address string = "localhost:50055"
 
-var ipaddress = flag.String("ip", "127.0.0.1", "Pass your ip address to tracker")
-var port = flag.String("port", "23", "Pass your port number to tracker")
-var playerId = flag.String("id", "1", "Who is missing")
-
 func main() {
+	if len(os.Args) < 3 {
+		log.Println("Wrong Args Number")
+	}
+
+	ipaddress := os.Args[0]
+	port := os.Args[1]
+	playerId := os.Args[2]
+
 	flag.Parse()
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
@@ -24,8 +29,9 @@ func main() {
 	defer conn.Close()
 	client := tracker_pb.NewTrackerServiceClient(conn)
 	resp, err := client.Register(context.Background(), &tracker_pb.RegisterRequest{
-		Ip:   *ipaddress,
-		Port: *port,
+		Ip:       ipaddress,
+		Port:     port,
+		PlayerId: playerId,
 	})
 	// player, _ := strconv.ParseInt(*playerId, 10, 32)
 	// resp2, _ := client.ReportMissing(context.Background(), &tracker_pb.Missing{

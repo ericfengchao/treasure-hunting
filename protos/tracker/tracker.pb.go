@@ -23,29 +23,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type MissingResponse_Status int32
-
-const (
-	MissingResponse_OK        MissingResponse_Status = 0
-	MissingResponse_NOT_EXIST MissingResponse_Status = 1
-)
-
-var MissingResponse_Status_name = map[int32]string{
-	0: "OK",
-	1: "NOT_EXIST",
-}
-var MissingResponse_Status_value = map[string]int32{
-	"OK":        0,
-	"NOT_EXIST": 1,
-}
-
-func (x MissingResponse_Status) String() string {
-	return proto.EnumName(MissingResponse_Status_name, int32(x))
-}
-func (MissingResponse_Status) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_tracker_049b1e83c45fd89c, []int{3, 0}
-}
-
 type RegisterResponse_Status int32
 
 const (
@@ -66,13 +43,36 @@ func (x RegisterResponse_Status) String() string {
 	return proto.EnumName(RegisterResponse_Status_name, int32(x))
 }
 func (RegisterResponse_Status) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_tracker_049b1e83c45fd89c, []int{4, 0}
+	return fileDescriptor_tracker_ebfc68add1fa12d7, []int{2, 0}
+}
+
+type MissingResponse_Status int32
+
+const (
+	MissingResponse_OK        MissingResponse_Status = 0
+	MissingResponse_NOT_EXIST MissingResponse_Status = 1
+)
+
+var MissingResponse_Status_name = map[int32]string{
+	0: "OK",
+	1: "NOT_EXIST",
+}
+var MissingResponse_Status_value = map[string]int32{
+	"OK":        0,
+	"NOT_EXIST": 1,
+}
+
+func (x MissingResponse_Status) String() string {
+	return proto.EnumName(MissingResponse_Status_name, int32(x))
+}
+func (MissingResponse_Status) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_tracker_ebfc68add1fa12d7, []int{4, 0}
 }
 
 type Player struct {
 	Ip                   string   `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
 	Port                 string   `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
-	PlayerId             int32    `protobuf:"varint,3,opt,name=playerId,proto3" json:"playerId,omitempty"`
+	PlayerId             string   `protobuf:"bytes,3,opt,name=playerId,proto3" json:"playerId,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -82,7 +82,7 @@ func (m *Player) Reset()         { *m = Player{} }
 func (m *Player) String() string { return proto.CompactTextString(m) }
 func (*Player) ProtoMessage()    {}
 func (*Player) Descriptor() ([]byte, []int) {
-	return fileDescriptor_tracker_049b1e83c45fd89c, []int{0}
+	return fileDescriptor_tracker_ebfc68add1fa12d7, []int{0}
 }
 func (m *Player) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Player.Unmarshal(m, b)
@@ -116,16 +116,17 @@ func (m *Player) GetPort() string {
 	return ""
 }
 
-func (m *Player) GetPlayerId() int32 {
+func (m *Player) GetPlayerId() string {
 	if m != nil {
 		return m.PlayerId
 	}
-	return 0
+	return ""
 }
 
 type RegisterRequest struct {
 	Ip                   string   `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
 	Port                 string   `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
+	PlayerId             string   `protobuf:"bytes,3,opt,name=playerId,proto3" json:"playerId,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -135,7 +136,7 @@ func (m *RegisterRequest) Reset()         { *m = RegisterRequest{} }
 func (m *RegisterRequest) String() string { return proto.CompactTextString(m) }
 func (*RegisterRequest) ProtoMessage()    {}
 func (*RegisterRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_tracker_049b1e83c45fd89c, []int{1}
+	return fileDescriptor_tracker_ebfc68add1fa12d7, []int{1}
 }
 func (m *RegisterRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RegisterRequest.Unmarshal(m, b)
@@ -169,8 +170,85 @@ func (m *RegisterRequest) GetPort() string {
 	return ""
 }
 
+func (m *RegisterRequest) GetPlayerId() string {
+	if m != nil {
+		return m.PlayerId
+	}
+	return ""
+}
+
+type RegisterResponse struct {
+	Status               RegisterResponse_Status `protobuf:"varint,1,opt,name=status,proto3,enum=game_tracker.RegisterResponse_Status" json:"status,omitempty"`
+	PlayerList           []*Player               `protobuf:"bytes,2,rep,name=playerList,proto3" json:"playerList,omitempty"`
+	Version              int32                   `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
+	N                    int32                   `protobuf:"varint,5,opt,name=N,proto3" json:"N,omitempty"`
+	K                    int32                   `protobuf:"varint,6,opt,name=K,proto3" json:"K,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
+}
+
+func (m *RegisterResponse) Reset()         { *m = RegisterResponse{} }
+func (m *RegisterResponse) String() string { return proto.CompactTextString(m) }
+func (*RegisterResponse) ProtoMessage()    {}
+func (*RegisterResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_tracker_ebfc68add1fa12d7, []int{2}
+}
+func (m *RegisterResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RegisterResponse.Unmarshal(m, b)
+}
+func (m *RegisterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RegisterResponse.Marshal(b, m, deterministic)
+}
+func (dst *RegisterResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RegisterResponse.Merge(dst, src)
+}
+func (m *RegisterResponse) XXX_Size() int {
+	return xxx_messageInfo_RegisterResponse.Size(m)
+}
+func (m *RegisterResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RegisterResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RegisterResponse proto.InternalMessageInfo
+
+func (m *RegisterResponse) GetStatus() RegisterResponse_Status {
+	if m != nil {
+		return m.Status
+	}
+	return RegisterResponse_OK
+}
+
+func (m *RegisterResponse) GetPlayerList() []*Player {
+	if m != nil {
+		return m.PlayerList
+	}
+	return nil
+}
+
+func (m *RegisterResponse) GetVersion() int32 {
+	if m != nil {
+		return m.Version
+	}
+	return 0
+}
+
+func (m *RegisterResponse) GetN() int32 {
+	if m != nil {
+		return m.N
+	}
+	return 0
+}
+
+func (m *RegisterResponse) GetK() int32 {
+	if m != nil {
+		return m.K
+	}
+	return 0
+}
+
 type Missing struct {
-	PlayerId             int32    `protobuf:"varint,1,opt,name=playerId,proto3" json:"playerId,omitempty"`
+	PlayerId             string   `protobuf:"bytes,1,opt,name=playerId,proto3" json:"playerId,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -180,7 +258,7 @@ func (m *Missing) Reset()         { *m = Missing{} }
 func (m *Missing) String() string { return proto.CompactTextString(m) }
 func (*Missing) ProtoMessage()    {}
 func (*Missing) Descriptor() ([]byte, []int) {
-	return fileDescriptor_tracker_049b1e83c45fd89c, []int{2}
+	return fileDescriptor_tracker_ebfc68add1fa12d7, []int{3}
 }
 func (m *Missing) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Missing.Unmarshal(m, b)
@@ -200,11 +278,11 @@ func (m *Missing) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Missing proto.InternalMessageInfo
 
-func (m *Missing) GetPlayerId() int32 {
+func (m *Missing) GetPlayerId() string {
 	if m != nil {
 		return m.PlayerId
 	}
-	return 0
+	return ""
 }
 
 type MissingResponse struct {
@@ -220,7 +298,7 @@ func (m *MissingResponse) Reset()         { *m = MissingResponse{} }
 func (m *MissingResponse) String() string { return proto.CompactTextString(m) }
 func (*MissingResponse) ProtoMessage()    {}
 func (*MissingResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_tracker_049b1e83c45fd89c, []int{3}
+	return fileDescriptor_tracker_ebfc68add1fa12d7, []int{4}
 }
 func (m *MissingResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MissingResponse.Unmarshal(m, b)
@@ -261,76 +339,14 @@ func (m *MissingResponse) GetVersion() int32 {
 	return 0
 }
 
-type RegisterResponse struct {
-	Status               RegisterResponse_Status `protobuf:"varint,1,opt,name=status,proto3,enum=game_tracker.RegisterResponse_Status" json:"status,omitempty"`
-	PlayerList           []*Player               `protobuf:"bytes,2,rep,name=playerList,proto3" json:"playerList,omitempty"`
-	PlayerId             int32                   `protobuf:"varint,3,opt,name=playerId,proto3" json:"playerId,omitempty"`
-	Version              int32                   `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
-	XXX_unrecognized     []byte                  `json:"-"`
-	XXX_sizecache        int32                   `json:"-"`
-}
-
-func (m *RegisterResponse) Reset()         { *m = RegisterResponse{} }
-func (m *RegisterResponse) String() string { return proto.CompactTextString(m) }
-func (*RegisterResponse) ProtoMessage()    {}
-func (*RegisterResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_tracker_049b1e83c45fd89c, []int{4}
-}
-func (m *RegisterResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_RegisterResponse.Unmarshal(m, b)
-}
-func (m *RegisterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_RegisterResponse.Marshal(b, m, deterministic)
-}
-func (dst *RegisterResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RegisterResponse.Merge(dst, src)
-}
-func (m *RegisterResponse) XXX_Size() int {
-	return xxx_messageInfo_RegisterResponse.Size(m)
-}
-func (m *RegisterResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_RegisterResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_RegisterResponse proto.InternalMessageInfo
-
-func (m *RegisterResponse) GetStatus() RegisterResponse_Status {
-	if m != nil {
-		return m.Status
-	}
-	return RegisterResponse_OK
-}
-
-func (m *RegisterResponse) GetPlayerList() []*Player {
-	if m != nil {
-		return m.PlayerList
-	}
-	return nil
-}
-
-func (m *RegisterResponse) GetPlayerId() int32 {
-	if m != nil {
-		return m.PlayerId
-	}
-	return 0
-}
-
-func (m *RegisterResponse) GetVersion() int32 {
-	if m != nil {
-		return m.Version
-	}
-	return 0
-}
-
 func init() {
 	proto.RegisterType((*Player)(nil), "game_tracker.Player")
 	proto.RegisterType((*RegisterRequest)(nil), "game_tracker.RegisterRequest")
+	proto.RegisterType((*RegisterResponse)(nil), "game_tracker.RegisterResponse")
 	proto.RegisterType((*Missing)(nil), "game_tracker.Missing")
 	proto.RegisterType((*MissingResponse)(nil), "game_tracker.MissingResponse")
-	proto.RegisterType((*RegisterResponse)(nil), "game_tracker.RegisterResponse")
-	proto.RegisterEnum("game_tracker.MissingResponse_Status", MissingResponse_Status_name, MissingResponse_Status_value)
 	proto.RegisterEnum("game_tracker.RegisterResponse_Status", RegisterResponse_Status_name, RegisterResponse_Status_value)
+	proto.RegisterEnum("game_tracker.MissingResponse_Status", MissingResponse_Status_name, MissingResponse_Status_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -438,31 +454,31 @@ var _TrackerService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "tracker.proto",
 }
 
-func init() { proto.RegisterFile("tracker.proto", fileDescriptor_tracker_049b1e83c45fd89c) }
+func init() { proto.RegisterFile("tracker.proto", fileDescriptor_tracker_ebfc68add1fa12d7) }
 
-var fileDescriptor_tracker_049b1e83c45fd89c = []byte{
-	// 354 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x93, 0x41, 0x4f, 0xc2, 0x30,
-	0x14, 0xc7, 0xe9, 0xc0, 0x01, 0x4f, 0x19, 0x4b, 0xa3, 0xc9, 0x42, 0x82, 0x92, 0x46, 0x12, 0x4e,
-	0x3b, 0xa0, 0xde, 0xf4, 0xe6, 0x82, 0x04, 0x15, 0xd3, 0xed, 0xe0, 0x8d, 0x4c, 0x6c, 0x48, 0xa3,
-	0xb2, 0xd9, 0x16, 0x12, 0xbf, 0x90, 0x9f, 0xc3, 0x6f, 0xe2, 0x57, 0x31, 0x74, 0x43, 0xd9, 0xd4,
-	0xc5, 0x83, 0xb7, 0xb5, 0xf9, 0xef, 0xff, 0xde, 0xef, 0xbd, 0x7f, 0xa1, 0xa1, 0x44, 0x38, 0x7d,
-	0x60, 0xc2, 0x8d, 0x45, 0xa4, 0x22, 0xbc, 0x33, 0x0b, 0x9f, 0xd8, 0x24, 0xbd, 0x23, 0x17, 0x60,
-	0xde, 0x3c, 0x86, 0x2f, 0x4c, 0x60, 0x0b, 0x0c, 0x1e, 0x3b, 0xa8, 0x83, 0x7a, 0x75, 0x6a, 0xf0,
-	0x18, 0x63, 0xa8, 0xc4, 0x91, 0x50, 0x8e, 0xa1, 0x6f, 0xf4, 0x37, 0x6e, 0x41, 0x2d, 0xd6, 0xea,
-	0xe1, 0xbd, 0x53, 0xee, 0xa0, 0xde, 0x16, 0xfd, 0x3c, 0x93, 0x13, 0x68, 0x52, 0x36, 0xe3, 0x52,
-	0x31, 0x41, 0xd9, 0xf3, 0x82, 0x49, 0xf5, 0x17, 0x4b, 0xd2, 0x85, 0xea, 0x15, 0x97, 0x92, 0xcf,
-	0x67, 0x19, 0x77, 0x94, 0x73, 0x7f, 0x43, 0xd0, 0x4c, 0x75, 0x94, 0xc9, 0x38, 0x9a, 0x4b, 0x86,
-	0x4f, 0xc1, 0x94, 0x2a, 0x54, 0x0b, 0xa9, 0xd5, 0x56, 0xff, 0xd0, 0xdd, 0x44, 0x73, 0x73, 0x72,
-	0xd7, 0xd7, 0x5a, 0x9a, 0xfe, 0x83, 0x8f, 0x01, 0x12, 0xf7, 0x4b, 0x2e, 0x57, 0x2d, 0x95, 0x7b,
-	0xdb, 0xfd, 0xdd, 0xac, 0x43, 0x32, 0x19, 0xba, 0xa1, 0xc3, 0x0e, 0x54, 0x97, 0x4c, 0x48, 0x1e,
-	0xcd, 0xd3, 0x01, 0xac, 0x8f, 0xe4, 0x00, 0xcc, 0xa4, 0x02, 0x36, 0xc1, 0x18, 0x8f, 0xec, 0x12,
-	0x6e, 0x40, 0xfd, 0x7a, 0x1c, 0x4c, 0xbc, 0xdb, 0xa1, 0x1f, 0xd8, 0x88, 0xbc, 0x23, 0xb0, 0xbf,
-	0x26, 0x94, 0x32, 0x9c, 0xe5, 0x18, 0xba, 0xd9, 0x0e, 0xf2, 0xfa, 0xff, 0x81, 0x28, 0x58, 0xe3,
-	0x26, 0x60, 0x25, 0x0b, 0xd8, 0xf9, 0x06, 0x68, 0x01, 0x50, 0x6f, 0x30, 0xf4, 0x03, 0x8f, 0x7a,
-	0xe7, 0x36, 0xea, 0xbf, 0x22, 0xb0, 0x82, 0xa4, 0xac, 0xcf, 0xc4, 0x92, 0x4f, 0x19, 0x1e, 0x41,
-	0x6d, 0xcd, 0x80, 0xdb, 0xbf, 0xb1, 0xe9, 0xb4, 0xb4, 0xf6, 0x8b, 0xd1, 0x49, 0x09, 0x0f, 0xa0,
-	0x41, 0xd9, 0x2a, 0x35, 0xeb, 0xc4, 0xec, 0xfd, 0xb8, 0xf1, 0x56, 0xbb, 0x30, 0x08, 0xa4, 0x74,
-	0x67, 0xea, 0xa7, 0x70, 0xf4, 0x11, 0x00, 0x00, 0xff, 0xff, 0xdf, 0x6d, 0xfc, 0xce, 0x1b, 0x03,
-	0x00, 0x00,
+var fileDescriptor_tracker_ebfc68add1fa12d7 = []byte{
+	// 366 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x93, 0xc1, 0x4e, 0xea, 0x40,
+	0x14, 0x86, 0x99, 0x02, 0x05, 0xce, 0x85, 0xd2, 0x9c, 0xdc, 0x9b, 0x34, 0x24, 0x5c, 0x49, 0x23,
+	0x09, 0xab, 0x2e, 0xd0, 0xa5, 0xee, 0x6c, 0x90, 0x54, 0x41, 0xa7, 0x5d, 0xb8, 0x23, 0x15, 0x27,
+	0x64, 0xa2, 0xd2, 0x3a, 0x53, 0x48, 0x7c, 0x21, 0x9f, 0xc3, 0x37, 0xf1, 0x55, 0x0c, 0x53, 0x40,
+	0x5a, 0x95, 0x8d, 0xee, 0xfa, 0xff, 0xf9, 0xfb, 0xb7, 0xe7, 0x3b, 0x33, 0xd0, 0x48, 0x44, 0x38,
+	0xbd, 0x67, 0xc2, 0x89, 0x45, 0x94, 0x44, 0x58, 0x9f, 0x85, 0x8f, 0x6c, 0xb2, 0xf6, 0xec, 0x73,
+	0xd0, 0xaf, 0x1e, 0xc2, 0x67, 0x26, 0xd0, 0x00, 0x8d, 0xc7, 0x16, 0xe9, 0x90, 0x5e, 0x8d, 0x6a,
+	0x3c, 0x46, 0x84, 0x52, 0x1c, 0x89, 0xc4, 0xd2, 0x94, 0xa3, 0x9e, 0xb1, 0x05, 0xd5, 0x58, 0xa5,
+	0x87, 0x77, 0x56, 0x51, 0xf9, 0x5b, 0x6d, 0x5f, 0x43, 0x93, 0xb2, 0x19, 0x97, 0x09, 0x13, 0x94,
+	0x3d, 0x2d, 0x98, 0x4c, 0x7e, 0x5c, 0xf9, 0x46, 0xc0, 0xfc, 0xe8, 0x94, 0x71, 0x34, 0x97, 0x0c,
+	0x4f, 0x41, 0x97, 0x49, 0x98, 0x2c, 0xa4, 0x2a, 0x36, 0xfa, 0x5d, 0x67, 0x77, 0x20, 0x27, 0x9f,
+	0x77, 0x7c, 0x15, 0xa6, 0xeb, 0x97, 0xf0, 0x18, 0x20, 0xed, 0xbf, 0xe0, 0x72, 0xf5, 0x27, 0xc5,
+	0xde, 0x9f, 0xfe, 0xdf, 0x6c, 0x45, 0x0a, 0x84, 0xee, 0xe4, 0xd0, 0x82, 0xca, 0x92, 0x09, 0xc9,
+	0xa3, 0xb9, 0x55, 0xea, 0x90, 0x5e, 0x99, 0x6e, 0x24, 0xd6, 0x81, 0x8c, 0xac, 0xb2, 0xf2, 0xc8,
+	0x68, 0xa5, 0x3c, 0x4b, 0x4f, 0x95, 0x67, 0x77, 0x40, 0x4f, 0xbf, 0x8e, 0x3a, 0x68, 0x63, 0xcf,
+	0x2c, 0xa0, 0x01, 0x40, 0xdd, 0xc1, 0xd0, 0x0f, 0x5c, 0xea, 0x9e, 0x99, 0xc4, 0xee, 0x42, 0xe5,
+	0x92, 0x4b, 0xc9, 0xe7, 0xb3, 0x0c, 0x08, 0x92, 0x03, 0xf1, 0x4a, 0xa0, 0xb9, 0xce, 0x6d, 0x39,
+	0x9c, 0xe4, 0x38, 0x1c, 0x66, 0x87, 0xc8, 0xc5, 0x7f, 0x1d, 0x43, 0x31, 0x83, 0xc1, 0x3e, 0xf8,
+	0x34, 0x6a, 0x03, 0x6a, 0xa3, 0x71, 0x30, 0x71, 0x6f, 0x86, 0x7e, 0x60, 0x92, 0xfe, 0x0b, 0x01,
+	0x23, 0x48, 0x9b, 0x7d, 0x26, 0x96, 0x7c, 0xca, 0xd0, 0x83, 0xea, 0x66, 0x5b, 0xd8, 0xfe, 0x6e,
+	0x8b, 0xea, 0x24, 0xb5, 0xfe, 0xef, 0x5f, 0xb2, 0x5d, 0xc0, 0x01, 0x34, 0x28, 0x5b, 0x9d, 0xa8,
+	0x0d, 0xcf, 0x7f, 0x5f, 0xf2, 0x68, 0xb5, 0xf7, 0x62, 0xb2, 0x0b, 0xb7, 0xba, 0xba, 0x26, 0x47,
+	0xef, 0x01, 0x00, 0x00, 0xff, 0xff, 0x30, 0xec, 0x39, 0x76, 0x37, 0x03, 0x00, 0x00,
 }

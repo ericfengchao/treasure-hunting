@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"strconv"
 
 	tracker "github.com/ericfengchao/treasure-hunting/protos/tracker"
 	"google.golang.org/grpc"
 )
 
+var address string = "localhost"
+
 type server struct {
 	PlayerList []*tracker.Player
 	Version    int32
-	Count      int32
+	N          int32
+	K          int32
 }
 
 func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tracker.RegisterResponse, error) {
@@ -24,32 +29,33 @@ func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tr
 		}, nil
 	}
 
-	playerId := s.Count // for every version's update, this version id can also refered to playerid
-	s.Count++
 	s.PlayerList = append(s.PlayerList, &tracker.Player{
 		Ip:       in.Ip,
 		Port:     in.Port,
-		PlayerId: playerId,
+		PlayerId: in.PlayerId,
 	})
+
 	s.Version++
 	return &tracker.RegisterResponse{
 		Status:     tracker.RegisterResponse_OK,
 		PlayerList: s.PlayerList,
 		Version:    s.Version,
+		N:          s.N,
+		K:          s.K,
 	}, nil
 }
 
 func (s *server) ReportMissing(ctx context.Context, in *tracker.Missing) (*tracker.MissingResponse, error) {
-	if s.Exist(in.PlayerId) {
+	if !s.Exist(in.PlayerId) {
 		return &tracker.MissingResponse{
 			Status:     tracker.MissingResponse_NOT_EXIST,
 			PlayerList: s.PlayerList,
 			Version:    s.Version,
 		}, nil
-	} // if s.Exist == false means that player does not exist
+	}
 
 	s.Delete(in.PlayerId)
-	fmt.Println("Delete: " + string(in.PlayerId))
+	fmt.Println("Delete: " + in.PlayerId)
 	s.Version++
 
 	return &tracker.MissingResponse{
@@ -59,7 +65,7 @@ func (s *server) ReportMissing(ctx context.Context, in *tracker.Missing) (*track
 	}, nil
 }
 
-func (s *server) Delete(playerId int32) {
+func (s *server) Delete(playerId string) {
 	for k, v := range s.PlayerList {
 		if v.PlayerId == playerId {
 			s.PlayerList = append(s.PlayerList[:k], s.PlayerList[k+1:]...)
@@ -76,30 +82,42 @@ func (s *server) Registered(Ip, Port string) bool {
 	return false
 }
 
-func (s *server) Exist(playerId int32) bool {
+func (s *server) Exist(playerId string) bool {
 	for _, v := range s.PlayerList {
 		if v.PlayerId == playerId {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
-func NewTrackerServer() *server {
+func NewTrackerServer(n, k int32) *server {
 	var playerlist []*tracker.Player
 	return &server{
 		PlayerList: playerlist,
 		Version:    1,
-		Count:      1,
+		N:          n,
+		K:          k,
 	}
 }
 
 func main() {
+	if len(os.Args) != 3 {
+		log.Println("Wrong param numbers hint:[port][N][K]")
+		return
+	}
 
-	grpcListener, err := net.Listen("tcp", "localhost:50055")
+	port := os.Args[0]
+	N := os.Args[1]
+	K := os.Args[2]
+
+	fullAddress := address + ":" + port
+	grpcListener, err := net.Listen("tcp", fullAddress)
 	if err != nil {
 		log.Fatalf("Failed to listen for grpc: %v", err)
 	}
-	tracker_server := NewTrackerServer()
+	i32N, _ := strconv.ParseInt(N, 10, 32)
+	i32K, _ := strconv.ParseInt(K, 10, 32)
+	tracker_server := NewTrackerServer(int32(i32N), int32(i32K))
 	svr := grpc.NewServer()
 	tracker.RegisterTrackerServiceServer(svr, tracker_server)
 	svr.Serve(grpcListener)

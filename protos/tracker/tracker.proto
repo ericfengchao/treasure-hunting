@@ -10,16 +10,29 @@ service TrackerService {
 message Player {
     string ip = 1;
     string port = 2;
-    int32 playerId = 3;
+    string playerId = 3;
 }
 
 message RegisterRequest {
     string ip = 1;
     string port = 2;
+    string playerId = 3;
+}
+
+message RegisterResponse {
+    enum Status {
+        OK = 0; // tracker has registered the player
+        REGISTERED = 1; // already have this player
+    }
+    Status status = 1;
+    repeated Player playerList = 2;
+    int32 version = 4;
+    int32 N = 5;
+    int32 K = 6;
 }
 
 message Missing {
-    int32 playerId = 1;
+    string playerId = 1;
 }
 
 message MissingResponse {
@@ -30,15 +43,4 @@ message MissingResponse {
     Status status = 1;
     repeated Player playerList = 2;
     int32 version = 3;
-}
-
-message RegisterResponse {
-    enum Status {
-        OK = 0; // tracker has registered the player
-        REGISTERED = 1; // already have this player
-    }
-    Status status = 1;
-    repeated Player playerList = 2;
-    int32 playerId = 3;
-    int32 version = 4;
 }
