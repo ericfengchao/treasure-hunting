@@ -19,6 +19,7 @@ type server struct {
 	Version    int32
 	N          int32
 	K          int32
+	Port       string
 }
 
 func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tracker.RegisterResponse, error) {
@@ -42,6 +43,7 @@ func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tr
 		Version:    s.Version,
 		N:          s.N,
 		K:          s.K,
+		Port:       s.Port,
 	}, nil
 }
 
@@ -97,6 +99,7 @@ func NewTrackerServer(n, k int32) *server {
 		Version:    1,
 		N:          n,
 		K:          k,
+		Port:       "50054",
 	}
 }
 

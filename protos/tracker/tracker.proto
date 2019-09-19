@@ -29,6 +29,7 @@ message RegisterResponse {
     int32 version = 4;
     int32 N = 5;
     int32 K = 6;
+    string port = 7;
 }
 
 message Missing {
