@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package game_tracker;
+
+service TrackerService {
+    rpc Register (RegisterRequest) returns (RegisterResponse) {}
+    rpc ReportMissing (Missing) returns (MissingResponse) {}
+}
+
+message Player {
+    string ip = 1;
+    string port = 2;
+    int32 playerId = 3;
+}
+
+message RegisterRequest {
+    string ip = 1;
+    string port = 2;
+}
+
+message Missing {
+    int32 playerId = 1;
+}
+
+message MissingResponse {
+    enum Status {
+        OK = 0; // tracker have deleted the missing player
+        NOT_EXIST = 1; // others have report that missing player and it has been deleted already
+    }
+    Status status = 1;
+    repeated Player playerList = 2;
+    int32 version = 3;
+}
+
+message RegisterResponse {
+    enum Status {
+        OK = 0; // tracker has registered the player
+        REGISTERED = 1; // already have this player
+    }
+    Status status = 1;
+    repeated Player playerList = 2;
+    int32 playerId = 3;
+    int32 version = 4;
+}
