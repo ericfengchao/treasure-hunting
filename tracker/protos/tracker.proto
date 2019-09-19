@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package game_tracker;
+
+service TrackerService {
+    rpc GetInfo (InfoRequest) returns (InfoResponse) {}
+}
+
+message InfoRequest {
+    string ip = 1;
+}
+
+message InfoResponse {
+    repeated string players = 1;
+}
