@@ -9,14 +9,12 @@ service TrackerService {
 
 message Player {
     string ip = 1;
-    string port = 2;
+    int32 port = 2;
     string playerId = 3;
 }
 
 message RegisterRequest {
-    string ip = 1;
-    string port = 2;
-    string playerId = 3;
+    string playerId = 1;
 }
 
 message RegisterResponse {
@@ -29,7 +27,7 @@ message RegisterResponse {
     int32 version = 4;
     int32 N = 5;
     int32 K = 6;
-    string port = 7;
+    int32 startPort = 7;
 }
 
 message Missing {
