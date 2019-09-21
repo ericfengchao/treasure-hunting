@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var address string = "localhost"
+var address string = "0.0.0.0"
 
 type server struct {
 	PlayerList []*tracker.Player
@@ -152,5 +152,6 @@ func main() {
 	trackerServer := NewTrackerServer(int32(i32N), int32(i32K))
 	svr := grpc.NewServer()
 	tracker.RegisterTrackerServiceServer(svr, trackerServer)
+	fmt.Println(BANNER)
 	svr.Serve(grpcListener)
 }

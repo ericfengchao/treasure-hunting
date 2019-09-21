@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -22,6 +23,7 @@ type playerSvc struct {
 	gridSize, treasureAmount int
 
 	shutdown chan struct{}
+	wg       *sync.WaitGroup
 
 	// primary server
 	gamePrimaryClient game_pb.GameServiceClient
@@ -40,6 +42,7 @@ type playerSvc struct {
 
 	playerStates []*game_pb.PlayerState
 	gameSvc      service.GameService
+	listener     net.Listener
 }
 
 func (p *playerSvc) Close() {
@@ -76,9 +79,11 @@ func (p *playerSvc) getHeartbeatPlayers() (prev, next *game_pb.Player) {
 	if len(p.registry.GetPlayerList()) <= 1 {
 		return nil, nil
 	}
+	numOfPlayer := len(p.registry.GetPlayerList())
 	for i, node := range p.registry.GetPlayerList() {
 		if node.PlayerId == p.id {
-			next = p.registry.GetPlayerList()[(i+1)%len(p.registry.GetPlayerList())]
+			next = p.registry.GetPlayerList()[(i+1)%numOfPlayer]
+			prev = p.registry.GetPlayerList()[(i-1+numOfPlayer)%numOfPlayer]
 			break
 		}
 		prev = node
@@ -102,6 +107,7 @@ func connectToPlayer(player *game_pb.Player) game_pb.GameServiceClient {
 }
 
 func (p *playerSvc) refreshHeartbeatNodes() {
+	p.registry = p.gameSvc.GetLocalRegistry()
 	prev, next := p.getHeartbeatPlayers()
 	if prev.GetPlayerId() != p.prevNode.GetPlayerId() {
 		// previous neighbour is changed now, connect to the new one
@@ -123,7 +129,20 @@ func (p *playerSvc) refreshPrimaryNode() {
 	}
 }
 
+func (p *playerSvc) reportMissingNode(ctx context.Context, playerId string) {
+	resp, err := p.tracker.ReportMissing(ctx, &game_pb.Missing{PlayerId: playerId})
+	if err != nil {
+		log.Println("report missing failed", playerId, err)
+		// best effort
+		return
+	}
+	p.registry = resp.GetRegistry()
+	p.gameSvc.UpdateLocalRegistry(p.registry)
+}
+
 func (p *playerSvc) StartHeartbeat() {
+	p.wg.Add(1)
+	defer p.wg.Done()
 	t := time.NewTicker(time.Millisecond * 500)
 	ctx := context.Background()
 	for {
@@ -131,19 +150,28 @@ func (p *playerSvc) StartHeartbeat() {
 		case <-t.C:
 			p.refreshHeartbeatNodes()
 			if p.prevNodeClient != nil {
-				p.prevNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
+				_, err := p.prevNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
 					PlayerId: p.id,
-					//Registry: p.registry,
+					Registry: p.registry,
 				})
+				if err != nil {
+					// player is missing
+					p.reportMissingNode(ctx, p.prevNode.PlayerId)
+				}
 			}
 			if p.nextNodeClient != nil {
-				p.nextNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
+				_, err := p.nextNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
 					PlayerId: p.id,
-					//Registry: p.registry,
+					Registry: p.registry,
 				})
+				if err != nil {
+					// player is missing
+					p.reportMissingNode(ctx, p.nextNode.PlayerId)
+				}
 			}
 		case _, open := <-p.shutdown:
 			if !open {
+				p.listener.Close()
 				log.Println("receive shutting down signal")
 				return
 			}
@@ -156,13 +184,15 @@ func (p *playerSvc) StartServing() {
 	if err != nil {
 		log.Fatalf("Failed to listen for grpc: %v", err)
 	}
+	p.listener = grpcListener
 	p.gameSvc = service.NewGameSvc(p.deriveRole(), p.id, p.gridSize, p.treasureAmount, p.registry)
 	svr := grpc.NewServer()
 	game_pb.RegisterGameServiceServer(svr, p.gameSvc)
 
 	go func() {
 		if err := svr.Serve(grpcListener); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			log.Println("failed to serve: %v", err)
+			return
 		}
 	}()
 
@@ -175,7 +205,8 @@ func (p *playerSvc) StartServing() {
 	// http
 	http.Handle("/", p.gameSvc)
 	if err := http.ListenAndServe(fmt.Sprintf("localhost:%d", p.assignedPort+1), nil); err != nil {
-		log.Fatalf("failed to start http server: %v", err)
+		log.Println("failed to start http server: %v", err)
+		return
 	}
 }
 
@@ -193,16 +224,23 @@ func (p *playerSvc) Start(closing chan<- struct{}) {
 	for {
 		select {
 		case <-t.C:
-			if i >= 15 {
+			if p.id == "33" && i >= 3 {
 				close(p.shutdown)
-				break
+				p.wg.Wait()
+				return
+			} else if i >= 15 {
+				close(p.shutdown)
+				p.wg.Wait()
+				return
 			}
 			row, col := rand.Intn(p.gridSize), rand.Intn(p.gridSize)
 			resp, err := p.gamePrimaryClient.TakeSlot(ctx, &game_pb.TakeSlotRequest{
 				Id: p.id,
 				MoveToCoordinate: &game_pb.Coordinate{
-					Row: int32(i % p.gridSize),
-					Col: int32(i % p.gridSize),
+					//Row: int32(i % p.gridSize),
+					//Col: int32(i % p.gridSize),
+					Row: int32(row),
+					Col: int32(col),
 				},
 			})
 			if err != nil {
@@ -241,5 +279,6 @@ func NewPlayerSvc(trackerHost, trackerPort string, id string) *playerSvc {
 		gridSize:       int(resp.GetN()),
 		treasureAmount: int(resp.GetK()),
 		shutdown:       make(chan struct{}, 0),
+		wg:             &sync.WaitGroup{},
 	}
 }

@@ -71,14 +71,19 @@ func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game
 }
 
 func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*game_pb.HeartbeatResponse, error) {
+	log.Println(fmt.Sprintf("player %s received heartbeat from %s, registry version: %d", s.playerId, req.PlayerId, req.Registry.GetVersion()))
 	if s.registry.GetVersion() < req.GetRegistry().GetVersion() {
 		s.registry = req.GetRegistry()
-		// update heartbeating neighbours
-		// if node's role is primary, contact new backup and sync
-		// if node's role is secondary, self update to primary and contact new secondary and sync
-		// if node's role is player, self update to backup and wait for primary to sync
 	}
 	return &game_pb.HeartbeatResponse{}, nil
+}
+
+func (s *svc) UpdateLocalRegistry(registry *game_pb.Registry) {
+	s.registry = registry
+}
+
+func (s *svc) GetLocalRegistry() *game_pb.Registry {
+	return s.registry
 }
 
 func (s *svc) AttachSlave(slave game_pb.GameServiceClient) {

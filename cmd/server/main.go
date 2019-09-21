@@ -27,5 +27,5 @@ func main() {
 	go playerSvc.Start(closing)
 
 	<-closing
-	fmt.Printf("PLAYER %s EXITING", playerId)
+	fmt.Printf("PLAYER %s EXITING\n", playerId)
 }
