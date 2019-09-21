@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"github.com/golang/protobuf/jsonpb"
 	"log"
 	"os"
 
@@ -11,15 +13,15 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 4 {
+	if len(os.Args) < 2 {
 		log.Println("Wrong Args Number")
 	}
 
-	ipaddress := os.Args[1] // tracker's ip address
-	port := os.Args[2]      // tracker's port
-	playerId := os.Args[3]  // player's id
+	host := os.Args[1]     // tracker's ip address
+	port := os.Args[2]     // tracker's port
+	playerId := os.Args[3] // player's id
 
-	address := ipaddress + ":" + port // concat address
+	address := host + ":" + port // concat address
 
 	flag.Parse()
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
@@ -31,9 +33,14 @@ func main() {
 	resp, err := client.Register(context.Background(), &tracker_pb.RegisterRequest{
 		PlayerId: playerId,
 	})
-	// resp2, _ := client.ReportMissing(context.Background(), &tracker_pb.Missing{
-	// 	PlayerId: playerId,
-	// })
-	log.Println(resp, err)
+	//resp2, _ := client.ReportMissing(context.Background(), &tracker_pb.Missing{
+	//	PlayerId: playerId,
+	//})
+	jpb := jsonpb.Marshaler{
+		EmitDefaults: true,
+		Indent:       "  ",
+	}
+	o, _ := jpb.MarshalToString(resp)
+	fmt.Printf("Resp:\n%s\n", o)
 	// log.Println(resp2)
 }

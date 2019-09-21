@@ -49,7 +49,7 @@ func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tr
 		},
 		N:            s.N,
 		K:            s.K,
-		AssignedPort: s.StartPort,
+		AssignedPort: s.StartPort - 2,
 	}
 	fmt.Println("Player: " + in.PlayerId + " registered")
 	return res, nil
