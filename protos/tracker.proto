@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package game_tracker;
+package game_pb;
 
 service TrackerService {
     rpc Register (RegisterRequest) returns (RegisterResponse) {}

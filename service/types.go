@@ -5,14 +5,6 @@ import (
 	"net/http"
 )
 
-type Role string
-
-const (
-	PrimaryNode Role = "Primary"
-	BackupNode  Role = "Backup"
-	PlayerNode  Role = "Player"
-)
-
 type GameService interface {
 	game_pb.GameServiceServer
 	http.Handler

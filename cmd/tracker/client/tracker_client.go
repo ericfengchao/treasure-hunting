@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	tracker_pb "github.com/ericfengchao/treasure-hunting/protos/tracker"
+	tracker_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"google.golang.org/grpc"
 )
 

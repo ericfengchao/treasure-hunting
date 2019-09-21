@@ -7,6 +7,8 @@ import (
 )
 
 type game struct {
+	role Role
+
 	// static states
 	grid gridder
 
@@ -86,8 +88,9 @@ func (g *game) getPlayerStatesListHtml() string {
 	return fmt.Sprintf(PlayerStatesList, strings.Join(players, ""))
 }
 
-func NewGame(gridSize int, treasureAmount int) Gamer {
+func NewGame(gridSize int, treasureAmount int, role Role) Gamer {
 	return &game{
+		role:       role,
 		grid:       newGrid(gridSize, gridSize, treasureAmount),
 		rwLock:     &sync.RWMutex{},
 		playerList: make(map[string]*Player),

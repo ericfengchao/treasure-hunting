@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"sync"
 
-	tracker "github.com/ericfengchao/treasure-hunting/protos/tracker"
+	tracker "github.com/ericfengchao/treasure-hunting/protos"
 	"google.golang.org/grpc"
 )
 
