@@ -10,11 +10,16 @@ service TrackerService {
 message Player {
     string ip = 1;
     int32 port = 2;
-    string playerId = 3;
+    string player_id = 3;
+}
+
+message Registry {
+    repeated Player player_list = 1;
+    int32 version = 2;
 }
 
 message RegisterRequest {
-    string playerId = 1;
+    string player_id = 1;
 }
 
 message RegisterResponse {
@@ -23,15 +28,14 @@ message RegisterResponse {
         REGISTERED = 1; // already have this player
     }
     Status status = 1;
-    repeated Player playerList = 2;
-    int32 version = 4;
-    int32 N = 5;
-    int32 K = 6;
-    int32 startPort = 7;
+    Registry registry = 2;
+    int32 N = 3;
+    int32 K = 4;
+    int32 assigned_port = 5;
 }
 
 message Missing {
-    string playerId = 1;
+    string player_id = 1;
 }
 
 message MissingResponse {
@@ -40,6 +44,5 @@ message MissingResponse {
         NOT_EXIST = 1; // others have report that missing player and it has been deleted already
     }
     Status status = 1;
-    repeated Player playerList = 2;
-    int32 version = 3;
+    Registry registry = 2;
 }

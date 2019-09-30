@@ -25,51 +25,55 @@ type server struct {
 }
 
 func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tracker.RegisterResponse, error) {
-
 	if s.Registered(in.PlayerId) {
 		return &tracker.RegisterResponse{
-			Status:  tracker.RegisterResponse_REGISTERED,
-			Version: s.Version,
+			Status: tracker.RegisterResponse_REGISTERED,
+			Registry: &tracker.Registry{
+				PlayerList: s.PlayerList,
+				Version:    s.Version,
+			},
 		}, nil
 	}
 
-	res, err := s.AppendPlayer(&tracker.Player{
-		Ip:       "localhost",
+	s.AppendPlayer(&tracker.Player{
+		Ip:       address,
 		Port:     s.StartPort,
 		PlayerId: in.PlayerId,
 	})
 
-	if err != nil {
-		log.Println(err)
+	res := &tracker.RegisterResponse{
+		Status: tracker.RegisterResponse_OK,
+		Registry: &tracker.Registry{
+			PlayerList: s.PlayerList,
+			Version:    s.Version,
+		},
+		N:            s.N,
+		K:            s.K,
+		AssignedPort: s.StartPort - 2,
 	}
+	fmt.Println("Player: " + in.PlayerId + " registered")
 	return res, nil
+
 }
-func (s *server) AppendPlayer(player *tracker.Player) (*tracker.RegisterResponse, error) {
+
+func (s *server) AppendPlayer(player *tracker.Player) {
 	s.RWLock.Lock()
 	defer s.RWLock.Unlock()
 
 	s.PlayerList = append(s.PlayerList, player)
-
-	res := &tracker.RegisterResponse{
-		Status:     tracker.RegisterResponse_OK,
-		PlayerList: s.PlayerList,
-		Version:    s.Version,
-		N:          s.N,
-		K:          s.K,
-		StartPort:  s.StartPort,
-	}
-	s.StartPort++
+	s.StartPort += 2 //
 	s.Version++
-	fmt.Println("Player: " + player.PlayerId + " registered")
-	return res, nil
 }
+
 func (s *server) ReportMissing(ctx context.Context, in *tracker.Missing) (*tracker.MissingResponse, error) {
 
 	if !s.Exist(in.PlayerId) {
 		return &tracker.MissingResponse{
-			Status:     tracker.MissingResponse_NOT_EXIST,
-			PlayerList: s.PlayerList,
-			Version:    s.Version,
+			Status: tracker.MissingResponse_NOT_EXIST,
+			Registry: &tracker.Registry{
+				PlayerList: s.PlayerList,
+				Version:    s.Version,
+			},
 		}, nil
 	}
 
@@ -77,9 +81,11 @@ func (s *server) ReportMissing(ctx context.Context, in *tracker.Missing) (*track
 	fmt.Println("Delete: " + in.PlayerId)
 
 	return &tracker.MissingResponse{
-		Status:     tracker.MissingResponse_OK,
-		PlayerList: s.PlayerList,
-		Version:    s.Version,
+		Status: tracker.MissingResponse_OK,
+		Registry: &tracker.Registry{
+			PlayerList: s.PlayerList,
+			Version:    s.Version,
+		},
 	}, nil
 }
 
@@ -116,16 +122,13 @@ func (s *server) Exist(playerId string) bool {
 	}
 	return false
 }
+
 func NewTrackerServer(n, k int32) *server {
-	var playerlist []*tracker.Player
-	var Lock sync.RWMutex
 	return &server{
-		PlayerList: playerlist,
-		RWLock:     &Lock,
-		Version:    1,
-		N:          n,
-		K:          k,
-		StartPort:  int32(51000),
+		RWLock:    &sync.RWMutex{},
+		N:         n,
+		K:         k,
+		StartPort: int32(51000),
 	}
 }
 
@@ -146,8 +149,8 @@ func main() {
 	}
 	i32N, _ := strconv.ParseInt(N, 10, 32)
 	i32K, _ := strconv.ParseInt(K, 10, 32)
-	tracker_server := NewTrackerServer(int32(i32N), int32(i32K))
+	trackerServer := NewTrackerServer(int32(i32N), int32(i32K))
 	svr := grpc.NewServer()
-	tracker.RegisterTrackerServiceServer(svr, tracker_server)
+	tracker.RegisterTrackerServiceServer(svr, trackerServer)
 	svr.Serve(grpcListener)
 }
