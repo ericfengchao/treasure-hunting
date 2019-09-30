@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "MgBmXopyMTVxPYgWfLrSsMIFE84=",
+			"path": "github.com/golang/protobuf/jsonpb",
+			"revision": "6c65a5562fc06764971b7c5d05c76c75e84bdbf7",
+			"revisionTime": "2019-07-01T18:22:01Z"
+		},
+		{
 			"checksumSHA1": "Y2MOwzNZfl4NRNDbLCZa6sgx7O0=",
 			"path": "github.com/golang/protobuf/proto",
 			"revision": "347cf4a86c1cb8d262994d8ef5924d4576c5b331",
@@ -25,6 +31,12 @@
 			"path": "github.com/golang/protobuf/ptypes/duration",
 			"revision": "347cf4a86c1cb8d262994d8ef5924d4576c5b331",
 			"revisionTime": "2019-01-09T07:22:47Z"
+		},
+		{
+			"checksumSHA1": "RT/PGRMtH/yBCbIJfZftaz5yc3M=",
+			"path": "github.com/golang/protobuf/ptypes/struct",
+			"revision": "6c65a5562fc06764971b7c5d05c76c75e84bdbf7",
+			"revisionTime": "2019-07-01T18:22:01Z"
 		},
 		{
 			"checksumSHA1": "seEwY2xETpK9yHJ9+bHqkLZ0VMU=",
