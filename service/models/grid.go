@@ -162,6 +162,13 @@ func (g *grid) toGridView() string {
 	return strings.Join(allRows, "")
 }
 
+func (g *grid) updateGrid(slots [][]*slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int) {
+	g.slots = slots
+	g.emptySlots = emptySlots
+	g.playerSlots = playerSlots
+	g.treasureSlots = treasureSlots
+}
+
 func newGrid(row, col int, treasureAmount int) gridder {
 	rand.Seed(time.Now().Unix())
 	shuffledN := rand.Perm(row * col)
@@ -188,7 +195,7 @@ func newGrid(row, col int, treasureAmount int) gridder {
 type gridder interface {
 	toGridView() string
 	isPlaceable(row, col int) error
-
+	updateGrid(slots [][]*slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int)
 	placePlayer(playerId string, row, col int) bool
 	removePlayer(playerId string)
 }
