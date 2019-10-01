@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 )
 
 type game struct {
@@ -84,6 +86,20 @@ func (g *game) getPlayerStatesListHtml() string {
 		players = append(players, p.getPlayerStateHtml())
 	}
 	return fmt.Sprintf(PlayerStatesList, strings.Join(players, ""))
+}
+
+func (g *game) UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int, stateVersion int) {
+	g.rwLock.Lock()
+	defer g.rwLock.Unlock()
+	g.stateVersion = stateVersion
+	originSlot := [][]*slot{}
+	for k, v := range slots {
+		for k1, v2 := range v {
+			originSlot[k][k1].treasure = v2.Treasure
+			originSlot[k][k1].playerId = v2.PlayerId
+		}
+	} // convert game_pb.Slot to models.slot
+	g.grid.updateGrid(originSlot, treasureSlots, playerSlots, emptySlots)
 }
 
 func NewGame(gridSize int, treasureAmount int) Gamer {

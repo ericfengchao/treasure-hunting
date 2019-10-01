@@ -1,8 +1,9 @@
 package service
 
 import (
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"net/http"
+
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 )
 
 type Role string
