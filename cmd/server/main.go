@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service"
-	"google.golang.org/grpc"
 	"log"
 	"net"
 	"net/http"
 	"os"
+
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
+	"github.com/ericfengchao/treasure-hunting/service"
+	"google.golang.org/grpc"
 )
 
 var gridSize = 3

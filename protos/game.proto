@@ -4,13 +4,50 @@ package game_pb;
 
 service GameService {
     rpc TakeSlot (TakeSlotRequest) returns (TakeSlotResponse) {}
-
+    rpc StatusCopy (CopyRequest) returns (CopyResponse) {}
     rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse) {}
 }
 
 message Coordinate {
     int32 row = 1;
     int32 col = 2;
+}
+
+message CopyRequest {
+    message Slot_row {
+        message Slot {
+            bool treasure = 1;
+            string playerId = 2;
+        }
+        repeated Slot slot = 1; 
+    } // this indicates each row of the grid
+
+    message Grid {
+        repeated Slot_row grid = 1; // this indicates the grid which constructed by slot_rows
+    
+        // indices for fast retrieval
+        repeated int32 treasureSlots = 2; // positions of treasure hiding slots
+        map<string, int32> playerSlots = 3; 
+        repeated int32 emptySlots = 4;
+    }
+
+    message Player {
+        string ip = 1;
+        int32 port = 2;
+        string player_id = 3;
+    }
+
+    Grid grid = 1;
+    int32 stateVersion = 2; // game state version should be atomically incremented
+}
+
+message CopyResponse {
+    enum Status {
+        OK = 0; // status updated
+        UPDATE_ERROR = 1; // cannot update self status
+        NULL_ERROR = 2; // received null object
+    }
+    Status status = 1;
 }
 
 message TakeSlotRequest {
