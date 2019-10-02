@@ -22,6 +22,16 @@ type game struct {
 	playerList map[string]*Player
 }
 
+func (g *game) GetSerialisedGameStats() *game_pb.CopyRequest {
+	g.rwLock.RLock()
+	defer g.rwLock.RUnlock()
+
+	return &game_pb.CopyRequest{
+		Grid:         g.grid.getSerialisedGameStates(),
+		StateVersion: int32(g.stateVersion),
+	}
+}
+
 // atomic step. Either updated all required information as well as synced with slave Or nothing happened
 // atomicity is realised by sync/RWMutex. If game has other member function, Lock/Unlock must be used there as well
 func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"log"
 	"math/rand"
 	"strings"
@@ -41,6 +42,24 @@ type grid struct {
 	treasureSlots []int // positions of treasure hiding slots
 	playerSlots   map[string]int
 	emptySlots    []int
+}
+
+func (g *grid) getSerialisedGameStates() *game_pb.Grid {
+	protoSlotRows := make([]*game_pb.SlotRow, len(g.slots))
+	for i, row := range g.slots {
+		protoSlotRows[i] = &game_pb.SlotRow{
+			Slots: make([]*game_pb.Slot, len(g.slots)),
+		}
+		for j, slot := range row {
+			protoSlotRows[i].Slots[j] = &game_pb.Slot{
+				Treasure: slot.treasure,
+				PlayerId: slot.playerId,
+			}
+		}
+	}
+	return &game_pb.Grid{
+		SlotRows: protoSlotRows,
+	}
 }
 
 func (g *grid) getRowCol(pos int) (row int, col int) {
@@ -198,4 +217,5 @@ type gridder interface {
 	updateGrid(slots [][]*slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int)
 	placePlayer(playerId string, row, col int) bool
 	removePlayer(playerId string)
+	getSerialisedGameStates() *game_pb.Grid
 }
