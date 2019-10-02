@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service/models"
 	"log"
 	"net/http"
+
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
+	"github.com/ericfengchao/treasure-hunting/service/models"
 )
 
 type svc struct {
@@ -20,6 +21,39 @@ type svc struct {
 
 func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, s.game.GetGridView())
+}
+
+func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_pb.CopyResponse, error) {
+	log.Println(req)
+
+	// initialize data
+	var slots [][]*game_pb.Slot
+	var treasureSlots []int
+	playerSlots := make(map[string]int)
+	var emptySlots []int
+	// convert type of treasureSlots
+	for _, v := range req.Grid.TreasureSlots {
+		treasureSlots = append(treasureSlots, int(v))
+	}
+	// convert type of slots
+	for k, v := range req.Grid.SlotRows {
+		slots[k] = v.Slot
+	}
+	// convert type of playerSlots
+	for k, v := range req.Grid.PlayerSlots {
+		playerSlots[k] = int(v)
+	}
+	// convert type of emptySlots
+	for _, v := range req.Grid.EmptySlots {
+		emptySlots = append(emptySlots, int(v))
+	}
+	// only receive status when i am slave
+	if s.role == BackupNode { // doing update
+		s.game.UpdateFullCopy(slots, treasureSlots, playerSlots, emptySlots, int(req.StateVersion))
+	}
+	return &game_pb.CopyResponse{
+		Status: game_pb.CopyResponse_OK,
+	}, nil
 }
 
 func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game_pb.TakeSlotResponse, error) {

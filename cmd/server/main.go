@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/ericfengchao/treasure-hunting/player_service"
 	"log"
 	"os"
+
+	"github.com/ericfengchao/treasure-hunting/player_service"
 )
 
 var gridSize = 3
