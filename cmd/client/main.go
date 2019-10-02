@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
+
 	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"google.golang.org/grpc"
-	"log"
 )
 
 var player = flag.String("player", "FC", "player's id")

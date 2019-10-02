@@ -13,6 +13,10 @@ message Coordinate {
     int32 col = 2;
 }
 
+message Move {
+    
+}
+
 message Slot {
     bool treasure = 1;
     string playerId = 2;
