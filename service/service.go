@@ -48,7 +48,7 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 		emptySlots = append(emptySlots, int(v))
 	}
 	// only receive status when i am slave
-	if s.role == BackupNode { // doing update
+	if s.role == models.BackupNode { // doing update
 		s.game.UpdateFullCopy(slots, treasureSlots, playerSlots, emptySlots, int(req.StateVersion))
 	}
 	return &game_pb.CopyResponse{

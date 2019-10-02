@@ -191,7 +191,7 @@ func (p *playerSvc) StartServing() {
 
 	go func() {
 		if err := svr.Serve(grpcListener); err != nil {
-			log.Println("failed to serve: %v", err)
+			log.Printf("failed to serve: %v", err)
 			return
 		}
 	}()
@@ -205,7 +205,7 @@ func (p *playerSvc) StartServing() {
 	// http
 	http.Handle("/", p.gameSvc)
 	if err := http.ListenAndServe(fmt.Sprintf("localhost:%d", p.assignedPort+1), nil); err != nil {
-		log.Println("failed to start http server: %v", err)
+		log.Printf("failed to start http server: %v", err)
 		return
 	}
 }
