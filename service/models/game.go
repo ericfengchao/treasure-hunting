@@ -9,6 +9,8 @@ import (
 )
 
 type game struct {
+	role Role
+
 	// static states
 	grid gridder
 
@@ -102,8 +104,9 @@ func (g *game) UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, play
 	g.grid.updateGrid(originSlot, treasureSlots, playerSlots, emptySlots)
 }
 
-func NewGame(gridSize int, treasureAmount int) Gamer {
+func NewGame(gridSize int, treasureAmount int, role Role) Gamer {
 	return &game{
+		role:       role,
 		grid:       newGrid(gridSize, gridSize, treasureAmount),
 		rwLock:     &sync.RWMutex{},
 		playerList: make(map[string]*Player),

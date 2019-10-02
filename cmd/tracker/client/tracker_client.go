@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	tracker_pb "github.com/ericfengchao/treasure-hunting/protos/tracker"
+	tracker_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"google.golang.org/grpc"
 )
 
@@ -33,6 +33,9 @@ func main() {
 	resp, err := client.Register(context.Background(), &tracker_pb.RegisterRequest{
 		PlayerId: playerId,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	//resp2, _ := client.ReportMissing(context.Background(), &tracker_pb.Missing{
 	//	PlayerId: playerId,
 	//})

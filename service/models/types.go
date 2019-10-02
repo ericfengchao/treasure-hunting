@@ -20,3 +20,11 @@ var (
 	PlaceAlreadyTaken  = errors.New("place is already taken")
 	SlaveIsDown        = errors.New("slave is down")
 )
+
+type Role string
+
+const (
+	PrimaryNode Role = "Primary"
+	BackupNode  Role = "Backup"
+	PlayerNode  Role = "Player"
+)
