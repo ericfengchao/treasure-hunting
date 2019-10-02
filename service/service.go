@@ -158,9 +158,16 @@ func (s *svc) roleSetup() {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
+	oldRole := s.role
 	s.role = s.deriveRole()
+
+	log.Printf("player %s role change from %s to %s", s.playerId, oldRole, s.role)
+
 	switch s.role {
 	case models.PrimaryNode:
+		if oldRole == models.BackupNode {
+			// todo deserialize game
+		}
 		backupNode := GetBackupServer(s.registry)
 		s.slave = ConnectToPlayer(backupNode)
 	}
@@ -188,6 +195,8 @@ func NewGameSvc(playerId string, gridSize int, treasureAmount int, registry *gam
 		rwLock:   &sync.RWMutex{},
 	}
 	s.roleSetup()
-	s.game = models.NewGame(gridSize, treasureAmount, s.role)
+	if s.role == models.PrimaryNode {
+		s.game = models.NewGame(gridSize, treasureAmount, s.role)
+	}
 	return s
 }
