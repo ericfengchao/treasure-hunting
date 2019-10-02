@@ -15,8 +15,9 @@ type svc struct {
 	playerId string
 	registry *game_pb.Registry
 
-	game  models.Gamer
-	slave game_pb.GameServiceClient
+	game     models.Gamer
+	gameCopy *game_pb.CopyRequest
+	slave    game_pb.GameServiceClient
 }
 
 func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,32 +26,12 @@ func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_pb.CopyResponse, error) {
 	log.Println(req)
-
-	// initialize data
-	var slots [][]*game_pb.Slot
-	var treasureSlots []int
-	playerSlots := make(map[string]int)
-	var emptySlots []int
-	// convert type of treasureSlots
-	for _, v := range req.Grid.TreasureSlots {
-		treasureSlots = append(treasureSlots, int(v))
+	if s.role != models.BackupNode {
+		return &game_pb.CopyResponse{
+			Status: game_pb.CopyResponse_I_AM_NOT_BACKUP,
+		}, nil
 	}
-	// convert type of slots
-	for k, v := range req.Grid.SlotRows {
-		slots[k] = v.Slot
-	}
-	// convert type of playerSlots
-	for k, v := range req.Grid.PlayerSlots {
-		playerSlots[k] = int(v)
-	}
-	// convert type of emptySlots
-	for _, v := range req.Grid.EmptySlots {
-		emptySlots = append(emptySlots, int(v))
-	}
-	// only receive status when i am slave
-	if s.role == models.BackupNode { // doing update
-		s.game.UpdateFullCopy(slots, treasureSlots, playerSlots, emptySlots, int(req.StateVersion))
-	}
+	s.gameCopy = req
 	return &game_pb.CopyResponse{
 		Status: game_pb.CopyResponse_OK,
 	}, nil
