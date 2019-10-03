@@ -70,7 +70,7 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 func (g *game) MovePlayer(playerId string, move string) (bool, error) {
 	g.rwLock.Lock()
 	defer g.rwLock.Unlock()
-
+	// move is received from the endpoint, need listening to the keyboard
 	var moveRow, moveCol int
 	if move == "0" {
 		return true, nil
