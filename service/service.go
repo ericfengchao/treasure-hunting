@@ -114,19 +114,10 @@ func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game
 	// real sync. if failure happens, the next request will detect
 	s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
 
-	resp := &game_pb.TakeSlotResponse{
-		Status: game_pb.TakeSlotResponse_OK,
-	}
-
-	gameStates := s.game.GetGameStates()
-	for _, p := range gameStates {
-		if p == nil {
-			continue
-		}
-		resp.PlayerStates = append(resp.PlayerStates, p.ToPlayerProto())
-	}
-
-	return resp, nil
+	return &game_pb.TakeSlotResponse{
+		PlayerStates: s.game.GetGameStates(),
+		Status:       game_pb.TakeSlotResponse_OK,
+	}, nil
 }
 
 func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*game_pb.HeartbeatResponse, error) {
@@ -134,6 +125,7 @@ func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*ga
 
 	// if registry changes, there might be a role change as well
 	log.Println(fmt.Sprintf("player %s received heartbeat from %s, registry version: %d", s.playerId, req.PlayerId, req.Registry.GetVersion()))
+	log.Println(fmt.Sprintf("player %s received heartbeat", s.playerId), req)
 	if s.registry.GetVersion() < req.GetRegistry().GetVersion() {
 		s.registry = req.GetRegistry()
 		defer s.roleSetup()
@@ -161,12 +153,14 @@ func (s *svc) roleSetup() {
 	oldRole := s.role
 	s.role = s.deriveRole()
 
-	log.Printf("player %s role change from %s to %s", s.playerId, oldRole, s.role)
+	if oldRole != s.role {
+		log.Printf("player %s role change from %s to %s", s.playerId, oldRole, s.role)
+	}
 
 	switch s.role {
 	case models.PrimaryNode:
 		if oldRole == models.BackupNode {
-			// todo deserialize game
+			s.game = models.NewGameFromGameCopy(s.gameCopy)
 		}
 		backupNode := GetBackupServer(s.registry)
 		s.slave = ConnectToPlayer(backupNode)
@@ -176,9 +170,12 @@ func (s *svc) roleSetup() {
 
 func (s *svc) UpdateLocalRegistry(registry *game_pb.Registry) {
 	s.rwLock.Lock()
-	defer s.rwLock.Unlock()
 
 	s.registry = registry
+	defer s.roleSetup()
+
+	s.rwLock.Unlock()
+
 }
 
 func (s *svc) GetLocalRegistry() *game_pb.Registry {
@@ -196,7 +193,7 @@ func NewGameSvc(playerId string, gridSize int, treasureAmount int, registry *gam
 	}
 	s.roleSetup()
 	if s.role == models.PrimaryNode {
-		s.game = models.NewGame(gridSize, treasureAmount, s.role)
+		s.game = models.NewGame(gridSize, treasureAmount)
 	}
 	return s
 }

@@ -9,8 +9,6 @@ import (
 )
 
 type game struct {
-	role Role
-
 	// static states
 	grid gridder
 
@@ -28,6 +26,7 @@ func (g *game) GetSerialisedGameStats() *game_pb.CopyRequest {
 
 	return &game_pb.CopyRequest{
 		Grid:         g.grid.getSerialisedGameStates(),
+		PlayerStates: g.GetGameStates(),
 		StateVersion: int32(g.stateVersion),
 	}
 }
@@ -79,11 +78,22 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 	return huntedTreasure, nil
 }
 
-func (g *game) GetGameStates() map[string]*Player {
+func (g *game) GetGameStates() []*game_pb.PlayerState {
 	g.rwLock.RLock()
 	defer g.rwLock.RUnlock()
 
-	return g.playerList
+	playersSerialised := make([]*game_pb.PlayerState, 0)
+	for _, player := range g.playerList {
+		playersSerialised = append(playersSerialised, &game_pb.PlayerState{
+			PlayerId: player.id,
+			CurrentPosition: &game_pb.Coordinate{
+				Row: int32(player.currentRow),
+				Col: int32(player.currentCol),
+			},
+			Score: int32(player.score),
+		})
+	}
+	return playersSerialised
 }
 
 func (g *game) GetGridView() string {
@@ -100,14 +110,12 @@ func (g *game) getPlayerStatesListHtml() string {
 	return fmt.Sprintf(PlayerStatesList, strings.Join(players, ""))
 }
 
-func (g *game) UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int, stateVersion int) {
-	g.rwLock.Lock()
-	defer g.rwLock.Unlock()
-	g.stateVersion = stateVersion
-	originSlot := make([][]*slot, len(slots))
-	for i, row := range slots {
-		originSlot[i] = make([]*slot, len(row))
-		for j, item := range row {
+func NewGameFromGameCopy(copy *game_pb.CopyRequest) Gamer {
+	gridCopy := copy.GetGrid()
+	originSlot := make([][]*slot, len(gridCopy.GetSlotRows()))
+	for i, row := range gridCopy.GetSlotRows() {
+		originSlot[i] = make([]*slot, len(row.GetSlots()))
+		for j, item := range row.GetSlots() {
 			s := &slot{
 				treasure: item.Treasure,
 				playerId: item.PlayerId,
@@ -115,12 +123,41 @@ func (g *game) UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, play
 			originSlot[i][j] = s
 		}
 	} // convert game_pb.Slot to models.slot
-	g.grid.updateGrid(originSlot, treasureSlots, playerSlots, emptySlots)
+
+	treasureSlots := make([]int, len(gridCopy.GetTreasureSlots()))
+	for i := range gridCopy.GetTreasureSlots() {
+		treasureSlots[i] = int(gridCopy.GetTreasureSlots()[i])
+	}
+	emptySlots := make([]int, len(gridCopy.GetEmptySlots()))
+	for i := range gridCopy.GetEmptySlots() {
+		emptySlots[i] = int(gridCopy.GetEmptySlots()[i])
+	}
+	playerSlots := make(map[string]int)
+	for playerId, slotId := range gridCopy.GetPlayerSlots() {
+		playerSlots[playerId] = int(slotId)
+	}
+	playerStates := make(map[string]*Player)
+	for _, p := range copy.GetPlayerStates() {
+		playerStates[p.PlayerId] = &Player{
+			id:         p.PlayerId,
+			host:       "",
+			port:       0,
+			score:      int(p.Score),
+			currentRow: int(p.CurrentPosition.GetRow()),
+			currentCol: int(p.CurrentPosition.GetCol()),
+		}
+	}
+
+	return &game{
+		grid:         NewGridWithGameCopy(originSlot, treasureSlots, playerSlots, emptySlots),
+		rwLock:       &sync.RWMutex{},
+		stateVersion: int(copy.GetStateVersion()),
+		playerList:   playerStates,
+	}
 }
 
-func NewGame(gridSize int, treasureAmount int, role Role) Gamer {
+func NewGame(gridSize int, treasureAmount int) Gamer {
 	return &game{
-		role:       role,
 		grid:       newGrid(gridSize, gridSize, treasureAmount),
 		rwLock:     &sync.RWMutex{},
 		playerList: make(map[string]*Player),
