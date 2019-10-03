@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"github.com/golang/protobuf/jsonpb"
 	"log"
 	"os"
-
-	"github.com/golang/protobuf/jsonpb"
 
 	tracker_pb "github.com/ericfengchao/treasure-hunting/protos/tracker"
 	"google.golang.org/grpc"
@@ -23,6 +23,7 @@ func main() {
 
 	address := host + ":" + port // concat address
 
+	flag.Parse()
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal("failed to connect to server", err)

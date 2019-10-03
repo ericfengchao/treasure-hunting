@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net"
@@ -9,7 +8,6 @@ import (
 	"os"
 
 	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	tracker_pb "github.com/ericfengchao/treasure-hunting/protos/tracker"
 	"github.com/ericfengchao/treasure-hunting/service"
 	"google.golang.org/grpc"
 )
@@ -23,16 +21,15 @@ func main() {
 	}
 	//trackerHost := os.Args[1]
 	//trackerPort := os.Args[2]
-	//trackerAddress := trakerHost + ":" + trackerPort
-	trackerAddress := "localhost:51000"
 	// register with tracker, confirm own identity
 	playerId := os.Args[3]
+
 	grpcListener, err := net.Listen("tcp", "localhost:50051")
 	if err != nil {
 		log.Fatalf("Failed to listen for grpc: %v", err)
 	}
-	role := getMyRole(trackerAddress, playerId)
-	gameSvc := service.NewGameSvc(role, playerId, gridSize, treasureAmount, nil)
+
+	gameSvc := service.NewGameSvc(service.PrimaryNode, playerId, gridSize, treasureAmount, nil)
 	svr := grpc.NewServer()
 	game_pb.RegisterGameServiceServer(svr, gameSvc)
 
@@ -49,30 +46,4 @@ func main() {
 	if err := http.ListenAndServe("localhost:50052", nil); err != nil {
 		log.Fatalf("failed to start http server: %v", err)
 	}
-}
-
-func getMyRole(trackerAddress string, playerId string) service.Role {
-	// First request tracker, to make sure which role I am
-	var role service.Role
-	conn, err := grpc.Dial(trackerAddress, grpc.WithInsecure())
-	if err != nil {
-		log.Fatal("failed to connect to server", err)
-	}
-	defer conn.Close()
-	client := tracker_pb.NewTrackerServiceClient(conn)
-	resp, err := client.Register(context.Background(), &tracker_pb.RegisterRequest{
-		PlayerId: playerId,
-	})
-
-	for k, v := range resp.Registry.PlayerList {
-		if v.PlayerId == playerId {
-			if k == 0 {
-				role = service.PrimaryNode
-			}
-			if k == 1 {
-				role = service.BackupNode
-			}
-		}
-	}
-	return role
 }
