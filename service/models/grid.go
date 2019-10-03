@@ -169,6 +169,10 @@ func (g *grid) updateGrid(slots [][]*slot, treasureSlots []int, playerSlots map[
 	g.treasureSlots = treasureSlots
 }
 
+func (g *grid) getSize() (int, int) {
+	return len(g.slots), len(g.slots[0])
+}
+
 func newGrid(row, col int, treasureAmount int) gridder {
 	rand.Seed(time.Now().Unix())
 	shuffledN := rand.Perm(row * col)
@@ -198,4 +202,5 @@ type gridder interface {
 	updateGrid(slots [][]*slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int)
 	placePlayer(playerId string, row, col int) bool
 	removePlayer(playerId string)
+	getSize() (int, int)
 }

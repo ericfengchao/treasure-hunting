@@ -11,6 +11,7 @@ type Gamer interface {
 	GetGameStates() map[string]*Player
 	GetGridView() string
 	// write
+	MovePlayer(playerId string, move string) (bool, error)
 	PlacePlayer(playerId string, row, col int) (bool, error)
 	UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int, stateVersion int)
 }
@@ -19,4 +20,5 @@ var (
 	InvalidCoordinates = errors.New("invalid coordinates")
 	PlaceAlreadyTaken  = errors.New("place is already taken")
 	SlaveIsDown        = errors.New("slave is down")
+	NoPlayerFound      = errors.New("no player record in server")
 )
