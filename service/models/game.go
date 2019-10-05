@@ -9,6 +9,8 @@ import (
 )
 
 type game struct {
+	role Role
+
 	// static states
 	grid gridder
 
@@ -143,18 +145,23 @@ func (g *game) UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, play
 	g.rwLock.Lock()
 	defer g.rwLock.Unlock()
 	g.stateVersion = stateVersion
-	originSlot := [][]*slot{}
-	for k, v := range slots {
-		for k1, v2 := range v {
-			originSlot[k][k1].treasure = v2.Treasure
-			originSlot[k][k1].playerId = v2.PlayerId
+	originSlot := make([][]*slot, len(slots))
+	for i, row := range slots {
+		originSlot[i] = make([]*slot, len(row))
+		for j, item := range row {
+			s := &slot{
+				treasure: item.Treasure,
+				playerId: item.PlayerId,
+			}
+			originSlot[i][j] = s
 		}
 	} // convert game_pb.Slot to models.slot
 	g.grid.updateGrid(originSlot, treasureSlots, playerSlots, emptySlots)
 }
 
-func NewGame(gridSize int, treasureAmount int) Gamer {
+func NewGame(gridSize int, treasureAmount int, role Role) Gamer {
 	return &game{
+		role:       role,
 		grid:       newGrid(gridSize, gridSize, treasureAmount),
 		rwLock:     &sync.RWMutex{},
 		playerList: make(map[string]*Player),

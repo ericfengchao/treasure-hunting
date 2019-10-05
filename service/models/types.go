@@ -22,3 +22,11 @@ var (
 	SlaveIsDown        = errors.New("slave is down")
 	NoPlayerFound      = errors.New("no player record in server")
 )
+
+type Role string
+
+const (
+	PrimaryNode Role = "Primary"
+	BackupNode  Role = "Backup"
+	PlayerNode  Role = "Player"
+)
