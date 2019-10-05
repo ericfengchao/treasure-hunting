@@ -11,4 +11,5 @@ type GameService interface {
 	http.Handler
 	GetLocalRegistry() *game_pb.Registry
 	UpdateLocalRegistry(*game_pb.Registry)
+	MovePlayer(move string) bool
 }

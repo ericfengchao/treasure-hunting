@@ -1,18 +1,21 @@
 package player_service
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service"
-	"github.com/ericfengchao/treasure-hunting/service/models"
-	"google.golang.org/grpc"
 	"log"
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
+
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
+	"github.com/ericfengchao/treasure-hunting/service"
+	"github.com/ericfengchao/treasure-hunting/service/models"
+	"google.golang.org/grpc"
 )
 
 type playerSvc struct {
@@ -207,6 +210,21 @@ func (p *playerSvc) StartServing() {
 	if err := http.ListenAndServe(fmt.Sprintf("localhost:%d", p.assignedPort+1), nil); err != nil {
 		log.Printf("failed to start http server: %v", err)
 		return
+	}
+}
+
+func (p *playerSvc) KeyboardListen() {
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		move, _ := reader.ReadString('\n')
+		if move == "9" {
+			p.Close()
+		} else {
+			ok := p.gameSvc.MovePlayer(move)
+		}
+		if ok {
+			fmt.Println("***Move done***")
+		}
 	}
 }
 

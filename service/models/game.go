@@ -89,9 +89,6 @@ func (g *game) MovePlayer(playerId string, move string) (bool, error) {
 	if move == "4" {
 		moveRow, moveCol = 0, -1
 	}
-	if move == "9" {
-		//delete myself
-	}
 	// update player
 
 	if p, ok := g.playerList[playerId]; ok {
@@ -114,10 +111,10 @@ func (g *game) MovePlayer(playerId string, move string) (bool, error) {
 		}
 		p.currentRow = newRow
 		p.currentCol = newCol
+		return true, nil
 	} else {
 		return false, NoPlayerFound
 	}
-	return true, nil
 }
 
 func (g *game) GetGameStates() map[string]*Player {

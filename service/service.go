@@ -37,6 +37,14 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 	}, nil
 }
 
+func (s *svc) MovePlayer(move string) bool {
+	ok, err := s.game.MovePlayer(s.playerId, move)
+	if err != nil {
+		log.Println("Can not find that player")
+	}
+	return bool
+}
+
 func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game_pb.TakeSlotResponse, error) {
 	log.Println(req)
 	// only take requests when i am a primary server node
