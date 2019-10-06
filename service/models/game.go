@@ -61,14 +61,14 @@ func (g *game) MovePlayer(playerId string, move Movement) error {
 	switch move {
 	case Stay:
 		return nil
-	case Up:
-		moveRow, moveCol = -1, 0
-	case Right:
-		moveRow, moveCol = 0, 1
-	case Down:
-		moveRow, moveCol = 1, 0
-	case Left:
+	case West:
 		moveRow, moveCol = 0, -1
+	case South:
+		moveRow, moveCol = 1, 0
+	case East:
+		moveRow, moveCol = 0, 1
+	case North:
+		moveRow, moveCol = -1, 0
 	}
 
 	// update player

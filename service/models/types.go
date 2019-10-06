@@ -36,10 +36,10 @@ type Movement int
 
 const (
 	Stay Movement = iota
-	Up
-	Right
-	Down
-	Left
+	West
+	South
+	East
+	North
 )
 
 const Exit Movement = 9
