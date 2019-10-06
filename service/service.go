@@ -122,8 +122,7 @@ func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*ga
 	s.rwLock.RLock()
 
 	// if registry changes, there might be a role change as well
-	log.Println(fmt.Sprintf("player %s received heartbeat from %s, registry version: %d", s.playerId, req.PlayerId, req.Registry.GetVersion()))
-	log.Println(fmt.Sprintf("player %s received heartbeat", s.playerId), req)
+	//log.Println(fmt.Sprintf("player %s received heartbeat from %s, registry version: %d", s.playerId, req.PlayerId, req.Registry.GetVersion()))
 	if s.registry.GetVersion() < req.GetRegistry().GetVersion() {
 		s.registry = req.GetRegistry()
 		defer s.roleSetup()

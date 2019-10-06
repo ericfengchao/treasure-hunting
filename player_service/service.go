@@ -173,7 +173,10 @@ func (p *playerSvc) StartServing() {
 	}
 }
 
-func (p *playerSvc) KeyboardListen() {
+func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
+	defer func() {
+		closing <- struct{}{}
+	}()
 	ctx := context.Background()
 	p.refreshPrimaryNode()
 	reader := bufio.NewScanner(os.Stdin)
@@ -182,7 +185,7 @@ func (p *playerSvc) KeyboardListen() {
 		move, err := service.ParseDirection(input)
 		if err != nil {
 			log.Printf("fail to parse the input, err: %s", err.Error())
-			continue
+			return
 		}
 		switch move {
 		case models.Exit:
@@ -223,7 +226,7 @@ func (p *playerSvc) Start(closing chan<- struct{}) {
 				close(p.shutdown)
 				p.wg.Wait()
 				return
-			} else if i >= 15 {
+			} else if i >= 10 {
 				close(p.shutdown)
 				p.wg.Wait()
 				return

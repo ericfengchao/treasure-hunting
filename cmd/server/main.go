@@ -26,8 +26,8 @@ func main() {
 	go playerSvc.StartServing()
 
 	closing := make(chan struct{}, 0)
-	// go playerSvc.Start(closing)
-	go playerSvc.KeyboardListen()
+	//go playerSvc.Start(closing)
+	go playerSvc.KeyboardListen(closing)
 	<-closing
 	fmt.Printf("PLAYER %s EXITING\n", playerId)
 }
