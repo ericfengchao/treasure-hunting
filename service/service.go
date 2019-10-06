@@ -46,13 +46,13 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 		}, nil
 	} else if s.role == models.PlayerNode {
 		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_I_AM_NOT_A_SERVER,
+			Status: game_pb.TakeSlotResponse_I_AM_NOT_A_SERVER,
 		}, nil
 	}
 
 	move := req.GetMove()
 	Id := req.GetId()
-	ok, err := s.game.MovePlayer(Id, move)
+	_, err := s.game.MovePlayer(Id, move)
 	if err == models.InvalidCoordinates {
 		return &game_pb.MoveResponse{
 			Status: game_pb.MoveResponse_INVALID_INPUT,
