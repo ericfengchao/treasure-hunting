@@ -42,7 +42,7 @@ func (s *svc) MovePlayer(move string) bool {
 	if err != nil {
 		log.Println("Can not find that player")
 	}
-	return bool
+	return ok
 }
 
 func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game_pb.TakeSlotResponse, error) {

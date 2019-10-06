@@ -202,9 +202,10 @@ func (p *playerSvc) StartServing() {
 	log.Println("player grpc starts listening now")
 
 	go p.StartHeartbeat()
-
 	log.Println("player heartbeat starts now")
 
+	go p.KeyboardListen()
+	log.Println("Keyboard now listening")
 	// http
 	http.Handle("/", p.gameSvc)
 	if err := http.ListenAndServe(fmt.Sprintf("localhost:%d", p.assignedPort+1), nil); err != nil {
@@ -217,13 +218,16 @@ func (p *playerSvc) KeyboardListen() {
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		move, _ := reader.ReadString('\n')
-		if move == "9" {
+		switch move {
+		case "9\n":
 			p.Close()
-		} else {
+			log.Println("receive shutting down signal")
+			return
+		case "0\n", "1\n", "2\n", "3\n", "4\n":
 			ok := p.gameSvc.MovePlayer(move)
-		}
-		if ok {
-			fmt.Println("***Move done***")
+			if ok {
+				log.Println("***Move done***")
+			}
 		}
 	}
 }
