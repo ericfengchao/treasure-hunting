@@ -160,6 +160,11 @@ func (s *svc) roleSetup() {
 
 	switch s.role {
 	case models.PrimaryNode:
+		// sync playerList
+		if s.game != nil {
+			s.game.CleanupPlayer(s.registry.GetPlayerList())
+		}
+		// sync slave
 		if oldRole == models.BackupNode {
 			s.game = models.NewGameFromGameCopy(s.gameCopy)
 		}

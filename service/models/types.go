@@ -11,9 +11,10 @@ type Gamer interface {
 	GetGameStates() []*game_pb.PlayerState
 	GetGridView() string
 	GetSerialisedGameStats() *game_pb.CopyRequest
+
 	// write
 	MovePlayer(playerId string, move Movement) error
-	//UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int, stateVersion int)
+	CleanupPlayer(playerList []*game_pb.Player)
 }
 
 var (
