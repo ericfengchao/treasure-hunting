@@ -7,8 +7,6 @@ import (
 
 type Player struct {
 	id         string // 2 char identifier
-	host       string
-	port       int
 	score      int
 	currentRow int
 	currentCol int

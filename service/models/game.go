@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
@@ -18,6 +19,24 @@ type game struct {
 
 	// Player management
 	playerList map[string]*Player
+}
+
+// based on the new player registry, determine if need to clean up dead players
+func (g *game) CleanupPlayer(newPlayerList []*game_pb.Player) {
+	g.rwLock.Lock()
+	defer g.rwLock.Unlock()
+
+	newPlayerMap := make(map[string]struct{})
+	for _, p := range newPlayerList {
+		newPlayerMap[p.GetPlayerId()] = struct{}{}
+	}
+	for id, p := range g.playerList {
+		if _, ok := newPlayerMap[id]; !ok {
+			log.Printf("removing player %s", id)
+			delete(g.playerList, id)
+			g.grid.removePlayer(p.id)
+		}
+	}
 }
 
 func (g *game) GetSerialisedGameStats() *game_pb.CopyRequest {
@@ -160,8 +179,6 @@ func NewGameFromGameCopy(copy *game_pb.CopyRequest) Gamer {
 	for _, p := range copy.GetPlayerStates() {
 		playerStates[p.PlayerId] = &Player{
 			id:         p.PlayerId,
-			host:       "",
-			port:       0,
 			score:      int(p.Score),
 			currentRow: int(p.CurrentPosition.GetRow()),
 			currentCol: int(p.CurrentPosition.GetCol()),
