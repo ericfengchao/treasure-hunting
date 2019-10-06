@@ -187,6 +187,21 @@ func (p *playerSvc) StartServing() {
 	}
 }
 
+var instructions = `
+*************
+0: Refresh
+      4
+      ^
+      |
+1 < ----- > 3
+      |
+      v
+      2
+
+9: Exit
+*************
+`
+
 func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 	defer func() {
 		closing <- struct{}{}
@@ -194,6 +209,7 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 	ctx := context.Background()
 	p.refreshPrimaryNode()
 	reader := bufio.NewScanner(os.Stdin)
+	fmt.Println(instructions)
 	for reader.Scan() {
 		input := reader.Text()
 		move, err := service.ParseDirection(input)
@@ -208,7 +224,7 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 			p.Close()
 			log.Println("receive shutting down signal")
 			return
-		case models.Up, models.Right, models.Down, models.Left:
+		case models.West, models.South, models.East, models.North:
 			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
 				Id:   p.id,
 				Move: int32(move),
@@ -220,7 +236,7 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 				p.playerStates = resp.GetPlayerStates()
 			}
 		}
-		//time.Sleep(time.Millisecond * 500)
+		fmt.Println(instructions)
 	}
 }
 
