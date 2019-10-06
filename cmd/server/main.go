@@ -21,12 +21,13 @@ func main() {
 
 	playerSvc := player_service.NewPlayerSvc(trackerHost, trackerPort, playerId)
 	defer playerSvc.Close()
-
+	//KeyboardListen
+	// playerSvc.Initialize()
 	go playerSvc.StartServing()
 
 	closing := make(chan struct{}, 0)
-	go playerSvc.Start(closing)
-
+	// go playerSvc.Start(closing)
+	go playerSvc.KeyboardListen()
 	<-closing
 	fmt.Printf("PLAYER %s EXITING\n", playerId)
 }

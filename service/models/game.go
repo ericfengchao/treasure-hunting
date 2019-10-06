@@ -78,6 +78,55 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 	return huntedTreasure, nil
 }
 
+func (g *game) MovePlayer(playerId string, move string) (bool, error) {
+	g.rwLock.Lock()
+	defer g.rwLock.Unlock()
+	// move is received from the endpoint, need listening to the keyboard
+	var moveRow, moveCol int
+	if move == "0\n" {
+		return true, nil
+	}
+	if move == "1\n" {
+		moveRow, moveCol = -1, 0
+	}
+	if move == "2\n" {
+		moveRow, moveCol = 0, 1
+	}
+	if move == "3\n" {
+		moveRow, moveCol = 1, 0
+	}
+	if move == "4\n" {
+		moveRow, moveCol = 0, -1
+	}
+	// update player
+
+	if p, ok := g.playerList[playerId]; ok {
+		newCol := p.currentCol + moveCol
+		newRow := p.currentRow + moveRow
+		rowsize, colsize := g.grid.getSize()
+		// check if placeable
+		if newCol > colsize-1 || newCol < 0 {
+			return false, InvalidCoordinates
+		}
+		if newRow > rowsize-1 || newRow < 0 {
+			return false, InvalidCoordinates
+		} // judge boundary
+		if err := g.grid.isPlaceable(newRow, newCol); err != nil {
+			return false, err
+		}
+		huntedTreasure := g.grid.placePlayer(playerId, newCol, newRow)
+		if huntedTreasure {
+			p.score = p.score + 1
+		}
+		p.currentRow = newRow
+		p.currentCol = newCol
+		g.stateVersion = g.stateVersion + 1
+		return huntedTreasure, nil
+	} else {
+		return false, NoPlayerFound
+	}
+}
+
 func (g *game) GetGameStates() []*game_pb.PlayerState {
 	g.rwLock.RLock()
 	defer g.rwLock.RUnlock()

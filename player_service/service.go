@@ -1,17 +1,20 @@
 package player_service
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service"
-	"google.golang.org/grpc"
 	"log"
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
+
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
+	"github.com/ericfengchao/treasure-hunting/service"
+	"google.golang.org/grpc"
 )
 
 type playerSvc struct {
@@ -160,14 +163,40 @@ func (p *playerSvc) StartServing() {
 	log.Println("player grpc starts listening now")
 
 	go p.StartHeartbeat()
-
 	log.Println("player heartbeat starts now")
-
 	// http
 	http.Handle("/", p.gameSvc)
 	if err := http.ListenAndServe(fmt.Sprintf("localhost:%d", p.assignedPort+1), nil); err != nil {
 		log.Printf("failed to start http server: %v", err)
 		return
+	}
+}
+
+func (p *playerSvc) KeyboardListen() {
+	ctx := context.Background()
+	p.refreshPrimaryNode()
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		move, _ := reader.ReadString('\n')
+		switch move {
+		case "9\n":
+			close(p.shutdown)
+			p.wg.Wait()
+			p.Close()
+			log.Println("receive shutting down signal")
+			return
+		case "0\n", "1\n", "2\n", "3\n", "4\n":
+			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+				Id:   p.id,
+				Move: move,
+			})
+			if err != nil {
+				log.Println(err)
+			} else {
+				log.Println(fmt.Sprintf("player-%s move done", p.id), resp.Status.String())
+				p.playerStates = resp.GetPlayerStates()
+			}
+		}
 	}
 }
 
