@@ -74,19 +74,19 @@ func (g *game) MovePlayer(playerId string, move string) (bool, error) {
 	defer g.rwLock.Unlock()
 	// move is received from the endpoint, need listening to the keyboard
 	var moveRow, moveCol int
-	if move == "0" {
+	if move == "0\n" {
 		return true, nil
 	}
-	if move == "1" {
+	if move == "1\n" {
 		moveRow, moveCol = -1, 0
 	}
-	if move == "2" {
+	if move == "2\n" {
 		moveRow, moveCol = 0, 1
 	}
-	if move == "3" {
+	if move == "3\n" {
 		moveRow, moveCol = 1, 0
 	}
-	if move == "4" {
+	if move == "4\n" {
 		moveRow, moveCol = 0, -1
 	}
 	// update player
@@ -111,7 +111,7 @@ func (g *game) MovePlayer(playerId string, move string) (bool, error) {
 		}
 		p.currentRow = newRow
 		p.currentCol = newCol
-		return true, nil
+		return huntedTreasure, nil
 	} else {
 		return false, NoPlayerFound
 	}

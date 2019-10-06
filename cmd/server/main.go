@@ -21,7 +21,8 @@ func main() {
 
 	playerSvc := player_service.NewPlayerSvc(trackerHost, trackerPort, playerId)
 	defer playerSvc.Close()
-
+	//KeyboardListen
+	go playerSvc.KeyboardListen()
 	go playerSvc.StartServing()
 
 	closing := make(chan struct{}, 0)

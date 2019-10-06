@@ -3,14 +3,13 @@
 
 package game_pb
 
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
+
 import (
-	context "context"
-	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
+	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -22,7 +21,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type CopyResponse_Status int32
 
@@ -39,7 +38,6 @@ var CopyResponse_Status_name = map[int32]string{
 	2: "I_AM_NOT_BACKUP",
 	3: "NULL_ERROR",
 }
-
 var CopyResponse_Status_value = map[string]int32{
 	"UNKNOWN":         0,
 	"OK":              1,
@@ -50,9 +48,43 @@ var CopyResponse_Status_value = map[string]int32{
 func (x CopyResponse_Status) String() string {
 	return proto.EnumName(CopyResponse_Status_name, int32(x))
 }
-
 func (CopyResponse_Status) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{5, 0}
+	return fileDescriptor_game_275cd19293034a60, []int{5, 0}
+}
+
+type MoveResponse_Status int32
+
+const (
+	MoveResponse_OK                     MoveResponse_Status = 0
+	MoveResponse_INVALID_INPUT          MoveResponse_Status = 1
+	MoveResponse_SLOT_TAKEN             MoveResponse_Status = 2
+	MoveResponse_I_AM_NOT_A_SERVER      MoveResponse_Status = 3
+	MoveResponse_I_AM_ONLY_BACKUP       MoveResponse_Status = 4
+	MoveResponse_SLAVE_INIT_IN_PROGRESS MoveResponse_Status = 5
+)
+
+var MoveResponse_Status_name = map[int32]string{
+	0: "OK",
+	1: "INVALID_INPUT",
+	2: "SLOT_TAKEN",
+	3: "I_AM_NOT_A_SERVER",
+	4: "I_AM_ONLY_BACKUP",
+	5: "SLAVE_INIT_IN_PROGRESS",
+}
+var MoveResponse_Status_value = map[string]int32{
+	"OK":                     0,
+	"INVALID_INPUT":          1,
+	"SLOT_TAKEN":             2,
+	"I_AM_NOT_A_SERVER":      3,
+	"I_AM_ONLY_BACKUP":       4,
+	"SLAVE_INIT_IN_PROGRESS": 5,
+}
+
+func (x MoveResponse_Status) String() string {
+	return proto.EnumName(MoveResponse_Status_name, int32(x))
+}
+func (MoveResponse_Status) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_game_275cd19293034a60, []int{8, 0}
 }
 
 type TakeSlotResponse_Status int32
@@ -74,7 +106,6 @@ var TakeSlotResponse_Status_name = map[int32]string{
 	4: "I_AM_ONLY_BACKUP",
 	5: "SLAVE_INIT_IN_PROGRESS",
 }
-
 var TakeSlotResponse_Status_value = map[string]int32{
 	"OK":                     0,
 	"INVALID_INPUT":          1,
@@ -87,9 +118,8 @@ var TakeSlotResponse_Status_value = map[string]int32{
 func (x TakeSlotResponse_Status) String() string {
 	return proto.EnumName(TakeSlotResponse_Status_name, int32(x))
 }
-
 func (TakeSlotResponse_Status) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{8, 0}
+	return fileDescriptor_game_275cd19293034a60, []int{10, 0}
 }
 
 type Coordinate struct {
@@ -104,17 +134,16 @@ func (m *Coordinate) Reset()         { *m = Coordinate{} }
 func (m *Coordinate) String() string { return proto.CompactTextString(m) }
 func (*Coordinate) ProtoMessage()    {}
 func (*Coordinate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{0}
+	return fileDescriptor_game_275cd19293034a60, []int{0}
 }
-
 func (m *Coordinate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Coordinate.Unmarshal(m, b)
 }
 func (m *Coordinate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Coordinate.Marshal(b, m, deterministic)
 }
-func (m *Coordinate) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Coordinate.Merge(m, src)
+func (dst *Coordinate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Coordinate.Merge(dst, src)
 }
 func (m *Coordinate) XXX_Size() int {
 	return xxx_messageInfo_Coordinate.Size(m)
@@ -151,17 +180,16 @@ func (m *Slot) Reset()         { *m = Slot{} }
 func (m *Slot) String() string { return proto.CompactTextString(m) }
 func (*Slot) ProtoMessage()    {}
 func (*Slot) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{1}
+	return fileDescriptor_game_275cd19293034a60, []int{1}
 }
-
 func (m *Slot) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Slot.Unmarshal(m, b)
 }
 func (m *Slot) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Slot.Marshal(b, m, deterministic)
 }
-func (m *Slot) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Slot.Merge(m, src)
+func (dst *Slot) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Slot.Merge(dst, src)
 }
 func (m *Slot) XXX_Size() int {
 	return xxx_messageInfo_Slot.Size(m)
@@ -197,17 +225,16 @@ func (m *SlotRow) Reset()         { *m = SlotRow{} }
 func (m *SlotRow) String() string { return proto.CompactTextString(m) }
 func (*SlotRow) ProtoMessage()    {}
 func (*SlotRow) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{2}
+	return fileDescriptor_game_275cd19293034a60, []int{2}
 }
-
 func (m *SlotRow) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SlotRow.Unmarshal(m, b)
 }
 func (m *SlotRow) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SlotRow.Marshal(b, m, deterministic)
 }
-func (m *SlotRow) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SlotRow.Merge(m, src)
+func (dst *SlotRow) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SlotRow.Merge(dst, src)
 }
 func (m *SlotRow) XXX_Size() int {
 	return xxx_messageInfo_SlotRow.Size(m)
@@ -240,17 +267,16 @@ func (m *Grid) Reset()         { *m = Grid{} }
 func (m *Grid) String() string { return proto.CompactTextString(m) }
 func (*Grid) ProtoMessage()    {}
 func (*Grid) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{3}
+	return fileDescriptor_game_275cd19293034a60, []int{3}
 }
-
 func (m *Grid) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Grid.Unmarshal(m, b)
 }
 func (m *Grid) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Grid.Marshal(b, m, deterministic)
 }
-func (m *Grid) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Grid.Merge(m, src)
+func (dst *Grid) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Grid.Merge(dst, src)
 }
 func (m *Grid) XXX_Size() int {
 	return xxx_messageInfo_Grid.Size(m)
@@ -301,17 +327,16 @@ func (m *CopyRequest) Reset()         { *m = CopyRequest{} }
 func (m *CopyRequest) String() string { return proto.CompactTextString(m) }
 func (*CopyRequest) ProtoMessage()    {}
 func (*CopyRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{4}
+	return fileDescriptor_game_275cd19293034a60, []int{4}
 }
-
 func (m *CopyRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CopyRequest.Unmarshal(m, b)
 }
 func (m *CopyRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CopyRequest.Marshal(b, m, deterministic)
 }
-func (m *CopyRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CopyRequest.Merge(m, src)
+func (dst *CopyRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CopyRequest.Merge(dst, src)
 }
 func (m *CopyRequest) XXX_Size() int {
 	return xxx_messageInfo_CopyRequest.Size(m)
@@ -347,17 +372,16 @@ func (m *CopyResponse) Reset()         { *m = CopyResponse{} }
 func (m *CopyResponse) String() string { return proto.CompactTextString(m) }
 func (*CopyResponse) ProtoMessage()    {}
 func (*CopyResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{5}
+	return fileDescriptor_game_275cd19293034a60, []int{5}
 }
-
 func (m *CopyResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CopyResponse.Unmarshal(m, b)
 }
 func (m *CopyResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CopyResponse.Marshal(b, m, deterministic)
 }
-func (m *CopyResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CopyResponse.Merge(m, src)
+func (dst *CopyResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CopyResponse.Merge(dst, src)
 }
 func (m *CopyResponse) XXX_Size() int {
 	return xxx_messageInfo_CopyResponse.Size(m)
@@ -387,17 +411,16 @@ func (m *TakeSlotRequest) Reset()         { *m = TakeSlotRequest{} }
 func (m *TakeSlotRequest) String() string { return proto.CompactTextString(m) }
 func (*TakeSlotRequest) ProtoMessage()    {}
 func (*TakeSlotRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{6}
+	return fileDescriptor_game_275cd19293034a60, []int{6}
 }
-
 func (m *TakeSlotRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TakeSlotRequest.Unmarshal(m, b)
 }
 func (m *TakeSlotRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_TakeSlotRequest.Marshal(b, m, deterministic)
 }
-func (m *TakeSlotRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TakeSlotRequest.Merge(m, src)
+func (dst *TakeSlotRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TakeSlotRequest.Merge(dst, src)
 }
 func (m *TakeSlotRequest) XXX_Size() int {
 	return xxx_messageInfo_TakeSlotRequest.Size(m)
@@ -422,6 +445,98 @@ func (m *TakeSlotRequest) GetMoveToCoordinate() *Coordinate {
 	return nil
 }
 
+type MoveRequest struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Move                 string   `protobuf:"bytes,2,opt,name=move,proto3" json:"move,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *MoveRequest) Reset()         { *m = MoveRequest{} }
+func (m *MoveRequest) String() string { return proto.CompactTextString(m) }
+func (*MoveRequest) ProtoMessage()    {}
+func (*MoveRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_game_275cd19293034a60, []int{7}
+}
+func (m *MoveRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MoveRequest.Unmarshal(m, b)
+}
+func (m *MoveRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MoveRequest.Marshal(b, m, deterministic)
+}
+func (dst *MoveRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MoveRequest.Merge(dst, src)
+}
+func (m *MoveRequest) XXX_Size() int {
+	return xxx_messageInfo_MoveRequest.Size(m)
+}
+func (m *MoveRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_MoveRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MoveRequest proto.InternalMessageInfo
+
+func (m *MoveRequest) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *MoveRequest) GetMove() string {
+	if m != nil {
+		return m.Move
+	}
+	return ""
+}
+
+type MoveResponse struct {
+	Status               MoveResponse_Status `protobuf:"varint,1,opt,name=status,proto3,enum=game_pb.MoveResponse_Status" json:"status,omitempty"`
+	PlayerStates         []*PlayerState      `protobuf:"bytes,2,rep,name=player_states,json=playerStates,proto3" json:"player_states,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
+}
+
+func (m *MoveResponse) Reset()         { *m = MoveResponse{} }
+func (m *MoveResponse) String() string { return proto.CompactTextString(m) }
+func (*MoveResponse) ProtoMessage()    {}
+func (*MoveResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_game_275cd19293034a60, []int{8}
+}
+func (m *MoveResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MoveResponse.Unmarshal(m, b)
+}
+func (m *MoveResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MoveResponse.Marshal(b, m, deterministic)
+}
+func (dst *MoveResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MoveResponse.Merge(dst, src)
+}
+func (m *MoveResponse) XXX_Size() int {
+	return xxx_messageInfo_MoveResponse.Size(m)
+}
+func (m *MoveResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MoveResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MoveResponse proto.InternalMessageInfo
+
+func (m *MoveResponse) GetStatus() MoveResponse_Status {
+	if m != nil {
+		return m.Status
+	}
+	return MoveResponse_OK
+}
+
+func (m *MoveResponse) GetPlayerStates() []*PlayerState {
+	if m != nil {
+		return m.PlayerStates
+	}
+	return nil
+}
+
 type PlayerState struct {
 	PlayerId             string      `protobuf:"bytes,1,opt,name=player_id,json=playerId,proto3" json:"player_id,omitempty"`
 	CurrentPosition      *Coordinate `protobuf:"bytes,2,opt,name=current_position,json=currentPosition,proto3" json:"current_position,omitempty"`
@@ -435,17 +550,16 @@ func (m *PlayerState) Reset()         { *m = PlayerState{} }
 func (m *PlayerState) String() string { return proto.CompactTextString(m) }
 func (*PlayerState) ProtoMessage()    {}
 func (*PlayerState) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{7}
+	return fileDescriptor_game_275cd19293034a60, []int{9}
 }
-
 func (m *PlayerState) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PlayerState.Unmarshal(m, b)
 }
 func (m *PlayerState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PlayerState.Marshal(b, m, deterministic)
 }
-func (m *PlayerState) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PlayerState.Merge(m, src)
+func (dst *PlayerState) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PlayerState.Merge(dst, src)
 }
 func (m *PlayerState) XXX_Size() int {
 	return xxx_messageInfo_PlayerState.Size(m)
@@ -489,17 +603,16 @@ func (m *TakeSlotResponse) Reset()         { *m = TakeSlotResponse{} }
 func (m *TakeSlotResponse) String() string { return proto.CompactTextString(m) }
 func (*TakeSlotResponse) ProtoMessage()    {}
 func (*TakeSlotResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{8}
+	return fileDescriptor_game_275cd19293034a60, []int{10}
 }
-
 func (m *TakeSlotResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TakeSlotResponse.Unmarshal(m, b)
 }
 func (m *TakeSlotResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_TakeSlotResponse.Marshal(b, m, deterministic)
 }
-func (m *TakeSlotResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TakeSlotResponse.Merge(m, src)
+func (dst *TakeSlotResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TakeSlotResponse.Merge(dst, src)
 }
 func (m *TakeSlotResponse) XXX_Size() int {
 	return xxx_messageInfo_TakeSlotResponse.Size(m)
@@ -536,17 +649,16 @@ func (m *HeartbeatRequest) Reset()         { *m = HeartbeatRequest{} }
 func (m *HeartbeatRequest) String() string { return proto.CompactTextString(m) }
 func (*HeartbeatRequest) ProtoMessage()    {}
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{9}
+	return fileDescriptor_game_275cd19293034a60, []int{11}
 }
-
 func (m *HeartbeatRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeartbeatRequest.Unmarshal(m, b)
 }
 func (m *HeartbeatRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_HeartbeatRequest.Marshal(b, m, deterministic)
 }
-func (m *HeartbeatRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HeartbeatRequest.Merge(m, src)
+func (dst *HeartbeatRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeartbeatRequest.Merge(dst, src)
 }
 func (m *HeartbeatRequest) XXX_Size() int {
 	return xxx_messageInfo_HeartbeatRequest.Size(m)
@@ -581,17 +693,16 @@ func (m *HeartbeatResponse) Reset()         { *m = HeartbeatResponse{} }
 func (m *HeartbeatResponse) String() string { return proto.CompactTextString(m) }
 func (*HeartbeatResponse) ProtoMessage()    {}
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38fc58335341d769, []int{10}
+	return fileDescriptor_game_275cd19293034a60, []int{12}
 }
-
 func (m *HeartbeatResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeartbeatResponse.Unmarshal(m, b)
 }
 func (m *HeartbeatResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_HeartbeatResponse.Marshal(b, m, deterministic)
 }
-func (m *HeartbeatResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HeartbeatResponse.Merge(m, src)
+func (dst *HeartbeatResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeartbeatResponse.Merge(dst, src)
 }
 func (m *HeartbeatResponse) XXX_Size() int {
 	return xxx_messageInfo_HeartbeatResponse.Size(m)
@@ -603,8 +714,6 @@ func (m *HeartbeatResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_HeartbeatResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterEnum("game_pb.CopyResponse_Status", CopyResponse_Status_name, CopyResponse_Status_value)
-	proto.RegisterEnum("game_pb.TakeSlotResponse_Status", TakeSlotResponse_Status_name, TakeSlotResponse_Status_value)
 	proto.RegisterType((*Coordinate)(nil), "game_pb.Coordinate")
 	proto.RegisterType((*Slot)(nil), "game_pb.Slot")
 	proto.RegisterType((*SlotRow)(nil), "game_pb.SlotRow")
@@ -613,65 +722,15 @@ func init() {
 	proto.RegisterType((*CopyRequest)(nil), "game_pb.CopyRequest")
 	proto.RegisterType((*CopyResponse)(nil), "game_pb.CopyResponse")
 	proto.RegisterType((*TakeSlotRequest)(nil), "game_pb.TakeSlotRequest")
+	proto.RegisterType((*MoveRequest)(nil), "game_pb.MoveRequest")
+	proto.RegisterType((*MoveResponse)(nil), "game_pb.MoveResponse")
 	proto.RegisterType((*PlayerState)(nil), "game_pb.PlayerState")
 	proto.RegisterType((*TakeSlotResponse)(nil), "game_pb.TakeSlotResponse")
 	proto.RegisterType((*HeartbeatRequest)(nil), "game_pb.HeartbeatRequest")
 	proto.RegisterType((*HeartbeatResponse)(nil), "game_pb.HeartbeatResponse")
-}
-
-func init() { proto.RegisterFile("game.proto", fileDescriptor_38fc58335341d769) }
-
-var fileDescriptor_38fc58335341d769 = []byte{
-	// 771 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x54, 0x51, 0x6f, 0xea, 0x36,
-	0x18, 0x6d, 0x02, 0xb4, 0xf0, 0xa5, 0xb4, 0xae, 0xdb, 0x3b, 0x31, 0x36, 0x6d, 0x5d, 0xae, 0x26,
-	0xf5, 0xe5, 0xa2, 0x89, 0xed, 0xe1, 0x6e, 0x93, 0xee, 0x94, 0xdb, 0x8b, 0xba, 0xa8, 0x2c, 0x20,
-	0x07, 0x3a, 0xed, 0x65, 0x56, 0x0a, 0x56, 0x15, 0x15, 0x70, 0x66, 0x1b, 0x10, 0xd2, 0x1e, 0xee,
-	0xcb, 0xa4, 0xfd, 0xbf, 0xfd, 0xa1, 0xc9, 0x76, 0x12, 0x28, 0x6a, 0xef, 0x9b, 0x7d, 0x7c, 0xbe,
-	0xe3, 0xef, 0x3b, 0xc7, 0x09, 0xc0, 0x43, 0x32, 0x67, 0x9d, 0x4c, 0x70, 0xc5, 0xf1, 0x91, 0x5e,
-	0xd3, 0xec, 0xbe, 0xdd, 0x54, 0x22, 0x99, 0x3c, 0x32, 0x61, 0x71, 0xff, 0x3b, 0x80, 0x6b, 0xce,
-	0xc5, 0x34, 0x5d, 0x24, 0x8a, 0x61, 0x04, 0x15, 0xc1, 0xd7, 0x2d, 0xe7, 0xd2, 0xb9, 0xaa, 0x11,
-	0xbd, 0xd4, 0xc8, 0x84, 0xcf, 0x5a, 0xae, 0x45, 0x26, 0x7c, 0xe6, 0xff, 0x02, 0xd5, 0x78, 0xc6,
-	0x15, 0x6e, 0x43, 0x5d, 0x09, 0x96, 0xc8, 0xa5, 0x60, 0xa6, 0xa0, 0x4e, 0xca, 0x3d, 0xfe, 0x02,
-	0x1a, 0xd9, 0x2c, 0xd9, 0x30, 0x41, 0xd3, 0xa9, 0xa9, 0x6d, 0x90, 0xba, 0x05, 0xc2, 0xa9, 0xdf,
-	0x81, 0x23, 0x2d, 0x40, 0xf8, 0x1a, 0xbf, 0x86, 0x9a, 0x9c, 0x71, 0x25, 0x5b, 0xce, 0x65, 0xe5,
-	0xca, 0xeb, 0x36, 0x3b, 0x79, 0x97, 0x1d, 0x43, 0xb0, 0x67, 0xfe, 0x47, 0x17, 0xaa, 0x37, 0x22,
-	0x9d, 0xe2, 0x37, 0xd0, 0xd0, 0x08, 0x15, 0x7c, 0x5d, 0x54, 0xa0, 0xa7, 0x15, 0x7c, 0x4d, 0xea,
-	0xd2, 0x2e, 0x24, 0xfe, 0x16, 0x4e, 0x8a, 0x86, 0xa8, 0xbd, 0xc5, 0xbd, 0xac, 0x5c, 0xd5, 0x48,
-	0xb3, 0x40, 0x75, 0x89, 0xc4, 0x01, 0x1c, 0xe7, 0xbd, 0x5a, 0x52, 0xc5, 0x08, 0x7f, 0x55, 0x0a,
-	0xeb, 0xab, 0x3b, 0x43, 0xc3, 0x30, 0x05, 0xbd, 0x85, 0x12, 0x1b, 0xe2, 0x65, 0x5b, 0x04, 0x7f,
-	0x0d, 0x1e, 0x9b, 0x67, 0x6a, 0x93, 0x2b, 0x54, 0xcd, 0x35, 0x60, 0x20, 0x43, 0x68, 0xbf, 0x03,
-	0xb4, 0xaf, 0xa0, 0x9d, 0x7d, 0x64, 0x1b, 0x63, 0x5d, 0x83, 0xe8, 0x25, 0xbe, 0x80, 0xda, 0x2a,
-	0x99, 0x2d, 0x59, 0xee, 0xb6, 0xdd, 0xfc, 0xe4, 0xbe, 0x75, 0xfc, 0x31, 0x78, 0xd7, 0x3c, 0xdb,
-	0x10, 0xf6, 0xd7, 0x92, 0x49, 0x85, 0xbf, 0x81, 0xea, 0x83, 0x48, 0xa7, 0xa6, 0x76, 0xd7, 0x35,
-	0xdd, 0x2a, 0x31, 0x47, 0xf8, 0x35, 0x34, 0xa5, 0x4a, 0x14, 0xa3, 0x2b, 0x26, 0x64, 0xca, 0x17,
-	0xb9, 0xe6, 0xb1, 0x01, 0xef, 0x2c, 0xe6, 0xff, 0xeb, 0xc0, 0xb1, 0xd5, 0x95, 0x19, 0x5f, 0x48,
-	0x86, 0x7f, 0x80, 0x43, 0x4d, 0x58, 0x4a, 0x23, 0x7d, 0xd2, 0xfd, 0xb2, 0x94, 0xde, 0xa5, 0x75,
-	0x62, 0xc3, 0x21, 0x39, 0xd7, 0x7f, 0x0f, 0x87, 0x16, 0xc1, 0x1e, 0x1c, 0x8d, 0xa3, 0xdb, 0x68,
-	0xf0, 0x7b, 0x84, 0x0e, 0xf0, 0x21, 0xb8, 0x83, 0x5b, 0xe4, 0xe0, 0x73, 0x38, 0x0d, 0x69, 0xf0,
-	0x1b, 0x8d, 0x06, 0x23, 0xfa, 0x3e, 0xb8, 0xbe, 0x1d, 0x0f, 0x91, 0x8b, 0x4f, 0x00, 0xa2, 0x71,
-	0xbf, 0x4f, 0x7b, 0x84, 0x0c, 0x08, 0xaa, 0xf8, 0x53, 0x38, 0x1d, 0x25, 0x8f, 0x26, 0x92, 0x62,
-	0xca, 0x13, 0x70, 0xf3, 0x19, 0x1b, 0xc4, 0x4d, 0xa7, 0x38, 0x00, 0x3c, 0xe7, 0x2b, 0x46, 0x15,
-	0xa7, 0x93, 0xf2, 0xc9, 0x9a, 0xb9, 0xbc, 0xee, 0xf9, 0x4e, 0xa3, 0xc5, 0x11, 0x41, 0x9a, 0x3e,
-	0xe2, 0x5b, 0xc4, 0xff, 0xe8, 0x80, 0x97, 0x07, 0xa1, 0x7d, 0x78, 0xfa, 0x4e, 0x9d, 0xa7, 0xef,
-	0x14, 0xbf, 0x03, 0x34, 0x59, 0x0a, 0xc1, 0x16, 0x8a, 0x66, 0x5c, 0xa6, 0xaa, 0x70, 0xf1, 0x85,
-	0xdb, 0x4e, 0x73, 0xf2, 0x30, 0xe7, 0xea, 0x38, 0xe5, 0x84, 0x0b, 0xd6, 0xaa, 0xd8, 0x38, 0xcd,
-	0xc6, 0xff, 0xc7, 0x05, 0xb4, 0x9d, 0x34, 0xf7, 0xfd, 0xed, 0x9e, 0xef, 0x97, 0xe5, 0x05, 0xfb,
-	0xd4, 0x3d, 0xef, 0xf1, 0x8f, 0xd0, 0x2c, 0x5e, 0xaf, 0x9e, 0xc8, 0xbe, 0x71, 0xaf, 0x7b, 0x51,
-	0x0a, 0xec, 0x8c, 0x4b, 0xf2, 0x87, 0x6e, 0x36, 0xd2, 0xff, 0xbb, 0x8c, 0xcd, 0x26, 0x75, 0x80,
-	0xcf, 0xa0, 0x19, 0x46, 0x77, 0x41, 0x3f, 0xfc, 0x40, 0xc3, 0x68, 0x38, 0x1e, 0x21, 0x47, 0xe7,
-	0x14, 0xf7, 0x07, 0x23, 0x3a, 0x0a, 0x6e, 0x7b, 0x11, 0x72, 0xf1, 0x2b, 0x38, 0x2b, 0xc3, 0x0c,
-	0x68, 0xdc, 0x23, 0x77, 0x3d, 0x82, 0x2a, 0xf8, 0x02, 0x90, 0x81, 0x07, 0x51, 0xff, 0x8f, 0x22,
-	0xe4, 0x2a, 0x6e, 0xc3, 0x67, 0x71, 0x3f, 0xb8, 0xeb, 0xd1, 0x30, 0x0a, 0x47, 0x34, 0x8c, 0xe8,
-	0x90, 0x0c, 0x6e, 0x48, 0x2f, 0x8e, 0x51, 0xcd, 0xff, 0x13, 0xd0, 0xaf, 0x2c, 0x11, 0xea, 0x9e,
-	0x25, 0x65, 0xe2, 0x9f, 0x8c, 0xe3, 0x0d, 0xd4, 0x05, 0x7b, 0x48, 0xa5, 0x12, 0x9b, 0x3c, 0x86,
-	0xb3, 0x72, 0x48, 0x92, 0x1f, 0x90, 0x92, 0xe2, 0x9f, 0xc3, 0xd9, 0x8e, 0xbe, 0x35, 0xaf, 0xfb,
-	0x9f, 0x03, 0xde, 0x4d, 0x32, 0x67, 0x31, 0x13, 0xab, 0x74, 0xc2, 0x70, 0x00, 0xf5, 0xc2, 0x60,
-	0xdc, 0x7a, 0xc6, 0x73, 0xd3, 0x56, 0xfb, 0xf3, 0x17, 0xd3, 0xf0, 0x0f, 0xf0, 0xcf, 0x00, 0xd6,
-	0x45, 0xfd, 0x85, 0xe0, 0x8b, 0xbd, 0x0f, 0xc6, 0x0a, 0xbc, 0x7a, 0xf6, 0x33, 0xf2, 0x0f, 0xf0,
-	0x07, 0x68, 0x94, 0x4d, 0xe2, 0xed, 0x35, 0xfb, 0xc6, 0xb4, 0xdb, 0xcf, 0x1d, 0x15, 0x2a, 0xf7,
-	0x87, 0xe6, 0x57, 0xfe, 0xfd, 0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0xa3, 0x4f, 0xed, 0x7d, 0xf0,
-	0x05, 0x00, 0x00,
+	proto.RegisterEnum("game_pb.CopyResponse_Status", CopyResponse_Status_name, CopyResponse_Status_value)
+	proto.RegisterEnum("game_pb.MoveResponse_Status", MoveResponse_Status_name, MoveResponse_Status_value)
+	proto.RegisterEnum("game_pb.TakeSlotResponse_Status", TakeSlotResponse_Status_name, TakeSlotResponse_Status_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -689,6 +748,7 @@ type GameServiceClient interface {
 	TakeSlot(ctx context.Context, in *TakeSlotRequest, opts ...grpc.CallOption) (*TakeSlotResponse, error)
 	StatusCopy(ctx context.Context, in *CopyRequest, opts ...grpc.CallOption) (*CopyResponse, error)
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	MovePlayer(ctx context.Context, in *MoveRequest, opts ...grpc.CallOption) (*MoveResponse, error)
 }
 
 type gameServiceClient struct {
@@ -726,25 +786,21 @@ func (c *gameServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest,
 	return out, nil
 }
 
+func (c *gameServiceClient) MovePlayer(ctx context.Context, in *MoveRequest, opts ...grpc.CallOption) (*MoveResponse, error) {
+	out := new(MoveResponse)
+	err := c.cc.Invoke(ctx, "/game_pb.GameService/MovePlayer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GameServiceServer is the server API for GameService service.
 type GameServiceServer interface {
 	TakeSlot(context.Context, *TakeSlotRequest) (*TakeSlotResponse, error)
 	StatusCopy(context.Context, *CopyRequest) (*CopyResponse, error)
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
-}
-
-// UnimplementedGameServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedGameServiceServer struct {
-}
-
-func (*UnimplementedGameServiceServer) TakeSlot(ctx context.Context, req *TakeSlotRequest) (*TakeSlotResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TakeSlot not implemented")
-}
-func (*UnimplementedGameServiceServer) StatusCopy(ctx context.Context, req *CopyRequest) (*CopyResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StatusCopy not implemented")
-}
-func (*UnimplementedGameServiceServer) Heartbeat(ctx context.Context, req *HeartbeatRequest) (*HeartbeatResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+	MovePlayer(context.Context, *MoveRequest) (*MoveResponse, error)
 }
 
 func RegisterGameServiceServer(s *grpc.Server, srv GameServiceServer) {
@@ -805,6 +861,24 @@ func _GameService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GameService_MovePlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GameServiceServer).MovePlayer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/game_pb.GameService/MovePlayer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GameServiceServer).MovePlayer(ctx, req.(*MoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _GameService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "game_pb.GameService",
 	HandlerType: (*GameServiceServer)(nil),
@@ -821,7 +895,69 @@ var _GameService_serviceDesc = grpc.ServiceDesc{
 			MethodName: "Heartbeat",
 			Handler:    _GameService_Heartbeat_Handler,
 		},
+		{
+			MethodName: "MovePlayer",
+			Handler:    _GameService_MovePlayer_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "game.proto",
+}
+
+func init() { proto.RegisterFile("game.proto", fileDescriptor_game_275cd19293034a60) }
+
+var fileDescriptor_game_275cd19293034a60 = []byte{
+	// 821 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x55, 0xcf, 0x6f, 0xe3, 0x44,
+	0x14, 0x8e, 0x9d, 0xa4, 0x4d, 0x9e, 0x9b, 0xd6, 0x7d, 0xed, 0xa2, 0x10, 0x10, 0x94, 0x59, 0x21,
+	0xf5, 0xb2, 0x11, 0x04, 0x0e, 0x0b, 0x48, 0x8b, 0xbc, 0xdd, 0xa8, 0x44, 0xcd, 0x3a, 0xd1, 0x24,
+	0x29, 0xe2, 0xc2, 0xc8, 0x4d, 0x46, 0x95, 0xd5, 0x34, 0x13, 0xc6, 0x93, 0x54, 0x91, 0x38, 0xec,
+	0x05, 0x89, 0x23, 0xff, 0x30, 0x12, 0x9a, 0x19, 0xdb, 0x71, 0xa3, 0x16, 0xee, 0xdc, 0xc6, 0xdf,
+	0xfb, 0xde, 0x8f, 0xf9, 0xde, 0x7b, 0x63, 0x80, 0xdb, 0xe8, 0x9e, 0xb7, 0x97, 0x52, 0x28, 0x81,
+	0xfb, 0xfa, 0xcc, 0x96, 0x37, 0xad, 0x86, 0x92, 0xd1, 0xf4, 0x8e, 0x4b, 0x8b, 0x93, 0xaf, 0x00,
+	0x2e, 0x84, 0x90, 0xb3, 0x78, 0x11, 0x29, 0x8e, 0x3e, 0x94, 0xa5, 0x78, 0x68, 0x3a, 0x67, 0xce,
+	0x79, 0x95, 0xea, 0xa3, 0x46, 0xa6, 0x62, 0xde, 0x74, 0x2d, 0x32, 0x15, 0x73, 0xf2, 0x23, 0x54,
+	0x46, 0x73, 0xa1, 0xb0, 0x05, 0x35, 0x25, 0x79, 0x94, 0xac, 0x24, 0x37, 0x0e, 0x35, 0x9a, 0x7f,
+	0xe3, 0x27, 0x50, 0x5f, 0xce, 0xa3, 0x0d, 0x97, 0x2c, 0x9e, 0x19, 0xdf, 0x3a, 0xad, 0x59, 0xa0,
+	0x37, 0x23, 0x6d, 0xd8, 0xd7, 0x01, 0xa8, 0x78, 0xc0, 0x97, 0x50, 0x4d, 0xe6, 0x42, 0x25, 0x4d,
+	0xe7, 0xac, 0x7c, 0xee, 0x75, 0x1a, 0xed, 0xb4, 0xca, 0xb6, 0x21, 0x58, 0x1b, 0xf9, 0xe0, 0x42,
+	0xe5, 0x52, 0xc6, 0x33, 0x7c, 0x05, 0x75, 0x8d, 0x30, 0x29, 0x1e, 0x32, 0x0f, 0xff, 0xb1, 0x87,
+	0x78, 0xa0, 0xb5, 0xc4, 0x1e, 0x12, 0xfc, 0x12, 0x0e, 0xb3, 0x82, 0x98, 0xcd, 0xe2, 0x9e, 0x95,
+	0xcf, 0xab, 0xb4, 0x91, 0xa1, 0xda, 0x25, 0xc1, 0x00, 0x0e, 0xd2, 0x5a, 0x2d, 0xa9, 0x6c, 0x02,
+	0x7f, 0x96, 0x07, 0xd6, 0xa9, 0xdb, 0x43, 0xc3, 0x30, 0x0e, 0xdd, 0x85, 0x92, 0x1b, 0xea, 0x2d,
+	0xb7, 0x08, 0x7e, 0x0e, 0x1e, 0xbf, 0x5f, 0xaa, 0x4d, 0x1a, 0xa1, 0x62, 0xd2, 0x80, 0x81, 0x0c,
+	0xa1, 0xf5, 0x06, 0xfc, 0xdd, 0x08, 0x5a, 0xd9, 0x3b, 0xbe, 0x31, 0xd2, 0xd5, 0xa9, 0x3e, 0xe2,
+	0x29, 0x54, 0xd7, 0xd1, 0x7c, 0xc5, 0x53, 0xb5, 0xed, 0xc7, 0xf7, 0xee, 0x6b, 0x87, 0x4c, 0xc0,
+	0xbb, 0x10, 0xcb, 0x0d, 0xe5, 0xbf, 0xad, 0x78, 0xa2, 0xf0, 0x0b, 0xa8, 0xdc, 0xca, 0x78, 0x66,
+	0x7c, 0x8b, 0xaa, 0xe9, 0x52, 0xa9, 0x31, 0xe1, 0x4b, 0x68, 0x24, 0x2a, 0x52, 0x9c, 0xad, 0xb9,
+	0x4c, 0x62, 0xb1, 0x48, 0x63, 0x1e, 0x18, 0xf0, 0xda, 0x62, 0xe4, 0x4f, 0x07, 0x0e, 0x6c, 0xdc,
+	0x64, 0x29, 0x16, 0x09, 0xc7, 0x6f, 0x61, 0x4f, 0x13, 0x56, 0x89, 0x09, 0x7d, 0xd8, 0xf9, 0x34,
+	0x0f, 0x5d, 0xa4, 0xb5, 0x47, 0x86, 0x43, 0x53, 0x2e, 0x79, 0x0b, 0x7b, 0x16, 0x41, 0x0f, 0xf6,
+	0x27, 0xe1, 0x55, 0x38, 0xf8, 0x39, 0xf4, 0x4b, 0xb8, 0x07, 0xee, 0xe0, 0xca, 0x77, 0xf0, 0x04,
+	0x8e, 0x7a, 0x2c, 0x78, 0xcf, 0xc2, 0xc1, 0x98, 0xbd, 0x0d, 0x2e, 0xae, 0x26, 0x43, 0xdf, 0xc5,
+	0x43, 0x80, 0x70, 0xd2, 0xef, 0xb3, 0x2e, 0xa5, 0x03, 0xea, 0x97, 0xc9, 0x0c, 0x8e, 0xc6, 0xd1,
+	0x9d, 0x69, 0x49, 0x76, 0xcb, 0x43, 0x70, 0xd3, 0x3b, 0xd6, 0xa9, 0x1b, 0xcf, 0x30, 0x00, 0xbc,
+	0x17, 0x6b, 0xce, 0x94, 0x60, 0xd3, 0x7c, 0x64, 0xcd, 0xbd, 0xbc, 0xce, 0x49, 0xa1, 0xd0, 0xcc,
+	0x44, 0x7d, 0x4d, 0x1f, 0x8b, 0x2d, 0x42, 0xbe, 0x06, 0xef, 0xbd, 0x58, 0xf3, 0xe7, 0x32, 0x20,
+	0x54, 0xb4, 0x4b, 0x3a, 0xb1, 0xe6, 0x4c, 0xfe, 0x76, 0xe0, 0xc0, 0xfa, 0xfc, 0xa7, 0x46, 0x45,
+	0xda, 0x8e, 0x46, 0xf8, 0x1d, 0x34, 0xb2, 0x29, 0xd3, 0x1d, 0xb0, 0xb3, 0xe8, 0x75, 0x4e, 0x73,
+	0xe7, 0x74, 0x3e, 0xb4, 0x91, 0xa6, 0x03, 0x69, 0x3e, 0x12, 0xf2, 0x7b, 0x2e, 0xaf, 0x55, 0xb4,
+	0x84, 0xc7, 0xd0, 0xe8, 0x85, 0xd7, 0x41, 0xbf, 0xf7, 0x8e, 0xf5, 0xc2, 0xe1, 0x64, 0xec, 0x3b,
+	0x5a, 0xcf, 0x51, 0x7f, 0x30, 0x66, 0xe3, 0xe0, 0xaa, 0x1b, 0xfa, 0x2e, 0xbe, 0x80, 0xe3, 0x5c,
+	0xf4, 0x80, 0x8d, 0xba, 0xf4, 0xba, 0x4b, 0xfd, 0x32, 0x9e, 0x82, 0x6f, 0xe0, 0x41, 0xd8, 0xff,
+	0x25, 0x6b, 0x46, 0x05, 0x5b, 0xf0, 0xd1, 0xa8, 0x1f, 0x5c, 0x77, 0x59, 0x2f, 0xec, 0x8d, 0x59,
+	0x2f, 0x64, 0x43, 0x3a, 0xb8, 0xa4, 0xdd, 0xd1, 0xc8, 0xaf, 0x92, 0x0f, 0x0e, 0x78, 0x85, 0xda,
+	0x1e, 0xaf, 0xb6, 0xf3, 0x78, 0xb5, 0xf1, 0x0d, 0xf8, 0xd3, 0x95, 0x94, 0x7c, 0xa1, 0xd8, 0x52,
+	0x24, 0xb1, 0xca, 0x06, 0xef, 0x99, 0x06, 0x1d, 0xa5, 0xe4, 0x61, 0xca, 0xd5, 0x1b, 0x90, 0x4c,
+	0x85, 0xe4, 0xcd, 0xb2, 0xdd, 0x00, 0xf3, 0x41, 0xfe, 0x70, 0xc1, 0xdf, 0x0e, 0x47, 0xda, 0x86,
+	0xd7, 0x3b, 0x6d, 0x38, 0xcb, 0x13, 0xec, 0x52, 0xff, 0x37, 0xad, 0xf8, 0x15, 0xfc, 0x9f, 0x78,
+	0x24, 0xd5, 0x0d, 0x8f, 0xf2, 0x25, 0xf9, 0xd7, 0x76, 0xbc, 0x82, 0x9a, 0xe4, 0xb7, 0x71, 0xa2,
+	0xe4, 0x26, 0x6d, 0xc3, 0x71, 0x7e, 0x49, 0x9a, 0x1a, 0x68, 0x4e, 0x21, 0x27, 0x70, 0x5c, 0x88,
+	0x6f, 0xc5, 0xeb, 0xfc, 0xe5, 0x82, 0x77, 0x19, 0xdd, 0xf3, 0x11, 0x97, 0xeb, 0x78, 0xca, 0x31,
+	0x80, 0x5a, 0x26, 0x30, 0x36, 0x9f, 0xd0, 0xdc, 0x94, 0xd5, 0xfa, 0xf8, 0xd9, 0x6e, 0x90, 0x12,
+	0xfe, 0x00, 0x60, 0x55, 0xd4, 0x8f, 0x0a, 0x9e, 0xee, 0xbc, 0x31, 0x36, 0xc0, 0x8b, 0x27, 0x5f,
+	0x1e, 0x52, 0xc2, 0x77, 0x50, 0xcf, 0x8b, 0xc4, 0x6d, 0x9a, 0x5d, 0x61, 0x5a, 0xad, 0xa7, 0x4c,
+	0xc5, 0x12, 0xf4, 0xb6, 0xda, 0x4e, 0x17, 0x4a, 0x28, 0xbc, 0x0e, 0x85, 0x12, 0x8a, 0x8b, 0x4d,
+	0x4a, 0x37, 0x7b, 0xe6, 0xd7, 0xf9, 0xcd, 0x3f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xad, 0xcd, 0x99,
+	0x1f, 0x60, 0x07, 0x00, 0x00,
 }

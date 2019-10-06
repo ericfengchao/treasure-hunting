@@ -37,12 +37,52 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 	}, nil
 }
 
-func (s *svc) MovePlayer(move string) bool {
-	ok, err := s.game.MovePlayer(s.playerId, move)
-	if err != nil {
-		log.Println("Can not find that player")
+func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_pb.MoveResponse, error) {
+	log.Println(req)
+	// only take requests when i am a primary server node
+	if s.role == models.BackupNode {
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_I_AM_ONLY_BACKUP,
+		}, nil
+	} else if s.role == models.PlayerNode {
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_I_AM_NOT_A_SERVER,
+		}, nil
 	}
-	return ok
+
+	move := req.GetMove()
+	Id := req.GetId()
+	ok, err := s.game.MovePlayer(Id, move)
+	if err == models.InvalidCoordinates {
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_INVALID_INPUT,
+		}, nil
+	} else if err == models.PlaceAlreadyTaken {
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLOT_TAKEN,
+		}, nil
+	} else if err == models.SlaveIsDown {
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+		}, nil
+	} else if err != nil {
+		// unknown error occurred. e.g. io timeout. caller should retry
+		return nil, err
+	}
+
+	resp := &game_pb.MoveResponse{
+		Status: game_pb.MoveResponse_OK,
+	}
+
+	gameStates := s.game.GetGameStates()
+	for _, p := range gameStates {
+		if p == nil {
+			continue
+		}
+		resp.PlayerStates = append(resp.PlayerStates, p.ToPlayerProto())
+	}
+
+	return resp, nil
 }
 
 func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game_pb.TakeSlotResponse, error) {
