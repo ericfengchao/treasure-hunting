@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"log"
 	"math/rand"
 	"strings"
@@ -41,6 +42,41 @@ type grid struct {
 	treasureSlots []int // positions of treasure hiding slots
 	playerSlots   map[string]int
 	emptySlots    []int
+}
+
+func (g *grid) getSerialisedGameStates() *game_pb.Grid {
+	protoSlotRows := make([]*game_pb.SlotRow, len(g.slots))
+	for i, row := range g.slots {
+		protoSlotRows[i] = &game_pb.SlotRow{
+			Slots: make([]*game_pb.Slot, len(g.slots)),
+		}
+		for j, slot := range row {
+			protoSlotRows[i].Slots[j] = &game_pb.Slot{
+				Treasure: slot.treasure,
+				PlayerId: slot.playerId,
+			}
+		}
+	}
+
+	protoEmptySlots := make([]int32, len(g.emptySlots))
+	for i, slot := range g.emptySlots {
+		protoEmptySlots[i] = int32(slot)
+	}
+	protoTreasureSlots := make([]int32, len(g.treasureSlots))
+	for i, slot := range g.treasureSlots {
+		protoTreasureSlots[i] = int32(slot)
+	}
+	protoPlayerSlots := make(map[string]int32)
+	for id, slot := range g.playerSlots {
+		protoPlayerSlots[id] = int32(slot)
+	}
+
+	return &game_pb.Grid{
+		SlotRows:      protoSlotRows,
+		EmptySlots:    protoEmptySlots,
+		TreasureSlots: protoTreasureSlots,
+		PlayerSlots:   protoPlayerSlots,
+	}
 }
 
 func (g *grid) getRowCol(pos int) (row int, col int) {
@@ -162,11 +198,13 @@ func (g *grid) toGridView() string {
 	return strings.Join(allRows, "")
 }
 
-func (g *grid) updateGrid(slots [][]*slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int) {
-	g.slots = slots
-	g.emptySlots = emptySlots
-	g.playerSlots = playerSlots
-	g.treasureSlots = treasureSlots
+func NewGridWithGameCopy(slots [][]*slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int) gridder {
+	return &grid{
+		slots:         slots,
+		treasureSlots: treasureSlots,
+		playerSlots:   playerSlots,
+		emptySlots:    treasureSlots,
+	}
 }
 
 func newGrid(row, col int, treasureAmount int) gridder {
@@ -195,7 +233,7 @@ func newGrid(row, col int, treasureAmount int) gridder {
 type gridder interface {
 	toGridView() string
 	isPlaceable(row, col int) error
-	updateGrid(slots [][]*slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int)
 	placePlayer(playerId string, row, col int) bool
 	removePlayer(playerId string)
+	getSerialisedGameStates() *game_pb.Grid
 }

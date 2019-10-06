@@ -8,11 +8,12 @@ import (
 
 type Gamer interface {
 	// read
-	GetGameStates() map[string]*Player
+	GetGameStates() []*game_pb.PlayerState
 	GetGridView() string
+	GetSerialisedGameStats() *game_pb.CopyRequest
 	// write
 	PlacePlayer(playerId string, row, col int) (bool, error)
-	UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int, stateVersion int)
+	//UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int, stateVersion int)
 }
 
 var (
