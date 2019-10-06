@@ -115,6 +115,7 @@ func (p *playerSvc) reportMissingNode(ctx context.Context, playerId string) {
 	}
 	p.registry = resp.GetRegistry()
 	p.gameSvc.UpdateLocalRegistry(p.registry)
+	p.refreshPrimaryNode()
 }
 
 func (p *playerSvc) StartHeartbeat() {
