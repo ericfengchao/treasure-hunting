@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"log"
 	"net/http"
 	"sync"
@@ -20,7 +21,10 @@ type svc struct {
 
 	game     models.Gamer
 	gameCopy *game_pb.CopyRequest
-	slave    game_pb.GameServiceClient
+
+	slaveConn   *grpc.ClientConn
+	slaveNode   *game_pb.Player
+	slaveClient game_pb.GameServiceClient
 }
 
 func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -74,14 +78,14 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 	// 3. reply player
 
 	// slave healthcheck
-	if s.slave == nil {
+	if s.slaveClient == nil {
 		s.roleSetup()
 		return &game_pb.MoveResponse{
 			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
 		}, nil
 	}
 	// dummy game state sync
-	syncResp, syncErr := s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+	syncResp, syncErr := s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
 	if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
 		log.Printf("syncing with slave not successful: %s, %v", syncResp.GetStatus().String(), syncErr)
 		// refresh slave
@@ -110,7 +114,7 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 	}
 
 	// real sync. if failure happens, the next request will detect
-	s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+	s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
 
 	return &game_pb.MoveResponse{
 		PlayerStates: s.game.GetGameStates(),
@@ -159,8 +163,14 @@ func (s *svc) roleSetup() {
 		if oldRole == models.BackupNode {
 			s.game = models.NewGameFromGameCopy(s.gameCopy)
 		}
-		backupNode := GetBackupServer(s.registry)
-		s.slave = ConnectToPlayer(backupNode)
+		newBackupNode := GetBackupServer(s.registry)
+		if s.slaveNode == nil || s.slaveClient == nil || s.slaveNode.GetPlayerId() != newBackupNode.GetPlayerId() {
+			if s.slaveConn != nil {
+				s.slaveConn.Close()
+			}
+			s.slaveNode = newBackupNode
+			s.slaveConn, s.slaveClient = ConnectToPlayer(newBackupNode)
+		}
 	}
 	return
 }

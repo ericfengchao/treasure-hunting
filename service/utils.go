@@ -11,9 +11,9 @@ import (
 	"strings"
 )
 
-func ConnectToPlayer(player *game_pb.Player) game_pb.GameServiceClient {
+func ConnectToPlayer(player *game_pb.Player) (*grpc.ClientConn, game_pb.GameServiceClient) {
 	if player == nil {
-		return nil
+		return nil, nil
 	}
 	conn, err := grpc.Dial(
 		fmt.Sprintf("%s:%d", player.GetIp(), player.GetPort()),
@@ -21,9 +21,9 @@ func ConnectToPlayer(player *game_pb.Player) game_pb.GameServiceClient {
 	)
 	if err != nil {
 		log.Println("err connecting to player", player, err)
-		return nil
+		return nil, nil
 	}
-	return game_pb.NewGameServiceClient(conn)
+	return conn, game_pb.NewGameServiceClient(conn)
 }
 
 func GetPrimaryServer(registry *game_pb.Registry) *game_pb.Player {
