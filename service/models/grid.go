@@ -211,6 +211,15 @@ func (g *grid) getSize() (int, int) {
 	return len(g.slots), len(g.slots[0])
 }
 
+func (g *grid) getRandomEmptySlot() (int, int) {
+	if len(g.emptySlots) == 0 {
+		// grid is full
+		return -1, -1
+	}
+	r := rand.Intn(len(g.emptySlots))
+	return g.getRowCol(g.emptySlots[r])
+}
+
 func newGrid(row, col int, treasureAmount int) gridder {
 	rand.Seed(time.Now().Unix())
 	shuffledN := rand.Perm(row * col)
@@ -240,5 +249,6 @@ type gridder interface {
 	placePlayer(playerId string, row, col int) bool
 	removePlayer(playerId string)
 	getSize() (int, int)
+	getRandomEmptySlot() (int, int)
 	getSerialisedGameStates() *game_pb.Grid
 }

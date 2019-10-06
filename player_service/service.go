@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/ericfengchao/treasure-hunting/service/models"
 	"log"
 	"math/rand"
 	"net"
@@ -175,51 +176,33 @@ func (p *playerSvc) StartServing() {
 func (p *playerSvc) KeyboardListen() {
 	ctx := context.Background()
 	p.refreshPrimaryNode()
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		move, _ := reader.ReadString('\n')
+	reader := bufio.NewScanner(os.Stdin)
+	for reader.Scan() {
+		input := reader.Text()
+		move, err := service.ParseDirection(input)
+		if err != nil {
+			log.Printf("fail to parse the input, err: %s", err.Error())
+			continue
+		}
 		switch move {
-		case "9\n":
+		case models.Exit:
 			close(p.shutdown)
 			p.wg.Wait()
 			p.Close()
 			log.Println("receive shutting down signal")
 			return
-		case "0\n", "1\n", "2\n", "3\n", "4\n":
+		case models.Up, models.Right, models.Down, models.Left:
 			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
 				Id:   p.id,
-				Move: move,
+				Move: int32(move),
 			})
 			if err != nil {
 				log.Println(err)
 			} else {
-				log.Println(fmt.Sprintf("player-%s move done", p.id), resp.Status.String())
+				log.Println(fmt.Sprintf("player-%s move %d done", p.id, move), resp.Status.String())
 				p.playerStates = resp.GetPlayerStates()
 			}
 		}
-	}
-}
-
-func (p *playerSvc) Initialize() {
-	rand.Seed(time.Now().Unix())
-	p.refreshPrimaryNode()
-	ctx := context.Background()
-
-	row, col := rand.Intn(p.gridSize), rand.Intn(p.gridSize)
-	resp, err := p.gamePrimaryClient.TakeSlot(ctx, &game_pb.TakeSlotRequest{
-		Id: p.id,
-		MoveToCoordinate: &game_pb.Coordinate{
-			//Row: int32(i % p.gridSize),
-			//Col: int32(i % p.gridSize),
-			Row: int32(row),
-			Col: int32(col),
-		},
-	})
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Println(fmt.Sprintf("player-%s row-%d col-%d", p.id, row, col), resp.Status.String())
-		p.playerStates = resp.GetPlayerStates()
 	}
 }
 
@@ -245,20 +228,15 @@ func (p *playerSvc) Start(closing chan<- struct{}) {
 				p.wg.Wait()
 				return
 			}
-			row, col := rand.Intn(p.gridSize), rand.Intn(p.gridSize)
-			resp, err := p.gamePrimaryClient.TakeSlot(ctx, &game_pb.TakeSlotRequest{
-				Id: p.id,
-				MoveToCoordinate: &game_pb.Coordinate{
-					//Row: int32(i % p.gridSize),
-					//Col: int32(i % p.gridSize),
-					Row: int32(row),
-					Col: int32(col),
-				},
+			move := int32(rand.Intn(5))
+			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+				Id:   p.id,
+				Move: move,
 			})
 			if err != nil {
 				log.Println(err)
 			} else {
-				log.Println(fmt.Sprintf("player-%s row-%d col-%d", p.id, row, col), resp.Status.String())
+				log.Println(fmt.Sprintf("player-%s move-%d", p.id, move), resp.Status.String())
 				p.playerStates = resp.GetPlayerStates()
 			}
 			i++

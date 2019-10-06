@@ -9,8 +9,7 @@ import (
 )
 
 var player = flag.String("player", "FC", "player's id")
-var row = flag.Int("row", 0, "the row of the coordinates that you want to move to")
-var col = flag.Int("col", 0, "the col of the coordinates that you want to move to")
+var move = flag.Int("move", 0, "the move you want for the player")
 
 func main() {
 	flag.Parse()
@@ -20,12 +19,9 @@ func main() {
 	}
 	defer conn.Close()
 	client := game_pb.NewGameServiceClient(conn)
-	resp, err := client.TakeSlot(context.Background(), &game_pb.TakeSlotRequest{
-		Id: *player,
-		MoveToCoordinate: &game_pb.Coordinate{
-			Row: int32(*row),
-			Col: int32(*col),
-		},
+	resp, err := client.MovePlayer(context.Background(), &game_pb.MoveRequest{
+		Id:   *player,
+		Move: int32(*move),
 	})
 	log.Println(resp, err)
 }

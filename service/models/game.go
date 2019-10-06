@@ -33,21 +33,41 @@ func (g *game) GetSerialisedGameStats() *game_pb.CopyRequest {
 
 // atomic step. Either updated all required information as well as synced with slave Or nothing happened
 // atomicity is realised by sync/RWMutex. If game has other member function, Lock/Unlock must be used there as well
-func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
+func (g *game) MovePlayer(playerId string, move Movement) error {
 	g.rwLock.Lock()
 	defer g.rwLock.Unlock()
 
-	// check if placeable
-	if err := g.grid.isPlaceable(row, col); err != nil {
-		return false, err
+	// move is received from the endpoint, need listening to the keyboard
+	var moveRow, moveCol int
+	switch move {
+	case Stay:
+		return nil
+	case Up:
+		moveRow, moveCol = -1, 0
+	case Right:
+		moveRow, moveCol = 0, 1
+	case Down:
+		moveRow, moveCol = 1, 0
+	case Left:
+		moveRow, moveCol = 0, -1
 	}
 
-	// sync with slave
-	//var syncedWithSlave bool
-	// TODO sync with slave
-	//if !syncedWithSlave {
-	//	return false, SlaveIsDown
-	//}
+	// update player
+	if p, ok := g.playerList[playerId]; ok {
+		newRow := p.currentRow + moveRow
+		newCol := p.currentCol + moveCol
+		return g.placePlayer(playerId, newRow, newCol)
+	} else {
+		initialRow, initialCol := g.grid.getRandomEmptySlot()
+		return g.placePlayer(playerId, initialRow, initialCol)
+	}
+}
+
+func (g *game) placePlayer(playerId string, row, col int) error {
+	// check if placeable
+	if err := g.grid.isPlaceable(row, col); err != nil {
+		return err
+	}
 
 	// once slave is committed, start writing in master only
 	huntedTreasure := g.grid.placePlayer(playerId, row, col)
@@ -75,56 +95,7 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 	// increment version
 	g.stateVersion = g.stateVersion + 1
 
-	return huntedTreasure, nil
-}
-
-func (g *game) MovePlayer(playerId string, move string) (bool, error) {
-	g.rwLock.Lock()
-	defer g.rwLock.Unlock()
-	// move is received from the endpoint, need listening to the keyboard
-	var moveRow, moveCol int
-	if move == "0\n" {
-		return true, nil
-	}
-	if move == "1\n" {
-		moveRow, moveCol = -1, 0
-	}
-	if move == "2\n" {
-		moveRow, moveCol = 0, 1
-	}
-	if move == "3\n" {
-		moveRow, moveCol = 1, 0
-	}
-	if move == "4\n" {
-		moveRow, moveCol = 0, -1
-	}
-	// update player
-
-	if p, ok := g.playerList[playerId]; ok {
-		newCol := p.currentCol + moveCol
-		newRow := p.currentRow + moveRow
-		rowsize, colsize := g.grid.getSize()
-		// check if placeable
-		if newCol > colsize-1 || newCol < 0 {
-			return false, InvalidCoordinates
-		}
-		if newRow > rowsize-1 || newRow < 0 {
-			return false, InvalidCoordinates
-		} // judge boundary
-		if err := g.grid.isPlaceable(newRow, newCol); err != nil {
-			return false, err
-		}
-		huntedTreasure := g.grid.placePlayer(playerId, newCol, newRow)
-		if huntedTreasure {
-			p.score = p.score + 1
-		}
-		p.currentRow = newRow
-		p.currentCol = newCol
-		g.stateVersion = g.stateVersion + 1
-		return huntedTreasure, nil
-	} else {
-		return false, NoPlayerFound
-	}
+	return nil
 }
 
 func (g *game) GetGameStates() []*game_pb.PlayerState {

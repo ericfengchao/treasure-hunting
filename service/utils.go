@@ -1,10 +1,14 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	game_pb "github.com/ericfengchao/treasure-hunting/protos"
+	"github.com/ericfengchao/treasure-hunting/service/models"
 	"google.golang.org/grpc"
 	"log"
+	"strconv"
+	"strings"
 )
 
 func ConnectToPlayer(player *game_pb.Player) game_pb.GameServiceClient {
@@ -34,4 +38,19 @@ func GetBackupServer(registry *game_pb.Registry) *game_pb.Player {
 		return registry.GetPlayerList()[1]
 	}
 	return nil
+}
+
+var InvalidMoveInput = errors.New("invalid move input")
+
+func ParseDirection(input string) (models.Movement, error) {
+	i, err := strconv.ParseInt(strings.TrimSpace(input), 10, 64)
+	if err != nil {
+		return models.Stay, err
+	}
+	switch i {
+	case 0, 1, 2, 3, 4, 9:
+		return models.Movement(i), nil
+	default:
+		return models.Stay, InvalidMoveInput
+	}
 }

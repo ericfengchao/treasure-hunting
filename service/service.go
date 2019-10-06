@@ -57,6 +57,7 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_pb.MoveResponse, error) {
 	log.Println(req)
 	// only take requests when i am a primary server node
+	// only take requests when i am a primary server node
 	if s.role == models.BackupNode {
 		return &game_pb.MoveResponse{
 			Status: game_pb.MoveResponse_I_AM_ONLY_BACKUP,
@@ -67,9 +68,30 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 		}, nil
 	}
 
-	move := req.GetMove()
-	Id := req.GetId()
-	_, err := s.game.MovePlayer(Id, move)
+	// only master will deal with TakeSlot requests
+	// 1. update locally
+	// 2. serialise game status and sync with slave
+	// 3. reply player
+
+	// slave healthcheck
+	if s.slave == nil {
+		s.roleSetup()
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+		}, nil
+	}
+	// dummy game state sync
+	syncResp, syncErr := s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+	if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
+		log.Printf("syncing with slave not successful: %s, %v", syncResp.GetStatus().String(), syncErr)
+		// refresh slave
+		s.roleSetup()
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+		}, nil
+	}
+
+	err := s.game.MovePlayer(req.GetId(), models.Movement(int(req.GetMove())))
 	if err == models.InvalidCoordinates {
 		return &game_pb.MoveResponse{
 			Status: game_pb.MoveResponse_INVALID_INPUT,
@@ -87,76 +109,12 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 		return nil, err
 	}
 
-	return &game_pb.MoveResponse{
-		Status:       game_pb.MoveResponse_OK,
-		PlayerStates: s.game.GetGameStates(),
-	}, nil
-
-}
-
-func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game_pb.TakeSlotResponse, error) {
-	log.Println(req)
-	// only take requests when i am a primary server node
-	if s.role == models.BackupNode {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_I_AM_ONLY_BACKUP,
-		}, nil
-	} else if s.role == models.PlayerNode {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_I_AM_NOT_A_SERVER,
-		}, nil
-	}
-
-	// only master will deal with TakeSlot requests
-	// 1. update locally
-	// 2. serialise game status and sync with slave
-	// 3. reply player
-
-	// slave healthcheck
-	if s.slave == nil {
-		s.roleSetup()
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLAVE_INIT_IN_PROGRESS,
-		}, nil
-	}
-	// dummy game state sync
-	syncResp, syncErr := s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
-	if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
-		log.Printf("syncing with slave not successful: %s, %v", syncResp.GetStatus().String(), syncErr)
-		// refresh slave
-		s.roleSetup()
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLAVE_INIT_IN_PROGRESS,
-		}, nil
-	}
-
-	row := int(req.GetMoveToCoordinate().GetRow())
-	col := int(req.GetMoveToCoordinate().GetCol())
-
-	_, err := s.game.PlacePlayer(req.GetId(), row, col)
-	if err == models.InvalidCoordinates {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_INVALID_INPUT,
-		}, nil
-	} else if err == models.PlaceAlreadyTaken {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLOT_TAKEN,
-		}, nil
-	} else if err == models.SlaveIsDown {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLAVE_INIT_IN_PROGRESS,
-		}, nil
-	} else if err != nil {
-		// unknown error occurred. e.g. io timeout. caller should retry
-		return nil, err
-	}
-
 	// real sync. if failure happens, the next request will detect
 	s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
 
-	return &game_pb.TakeSlotResponse{
+	return &game_pb.MoveResponse{
 		PlayerStates: s.game.GetGameStates(),
-		Status:       game_pb.TakeSlotResponse_OK,
+		Status:       game_pb.MoveResponse_OK,
 	}, nil
 }
 
