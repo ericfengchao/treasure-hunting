@@ -111,6 +111,7 @@ func (g *game) MovePlayer(playerId string, move string) (bool, error) {
 		}
 		p.currentRow = newRow
 		p.currentCol = newCol
+		g.stateVersion = g.stateVersion + 1
 		return huntedTreasure, nil
 	} else {
 		return false, NoPlayerFound
