@@ -200,9 +200,6 @@ func (p *playerSvc) KeyboardListen() {
 	}
 }
 
-func (p *playerSvc) Initialize() {
-}
-
 func (p *playerSvc) Start(closing chan<- struct{}) {
 	defer func() {
 		closing <- struct{}{}
