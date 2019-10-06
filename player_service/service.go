@@ -14,7 +14,6 @@ import (
 
 	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"github.com/ericfengchao/treasure-hunting/service"
-	"github.com/ericfengchao/treasure-hunting/service/models"
 	"google.golang.org/grpc"
 )
 
@@ -54,30 +53,6 @@ func (p *playerSvc) Close() {
 	}
 }
 
-func (p *playerSvc) deriveRole() models.Role {
-	if p.getPrimaryServer().GetPlayerId() == p.id {
-		return models.PrimaryNode
-	} else if p.getBackupServer().GetPlayerId() == p.id {
-		return models.BackupNode
-	} else {
-		return models.PlayerNode
-	}
-}
-
-func (p *playerSvc) getPrimaryServer() *game_pb.Player {
-	if len(p.registry.GetPlayerList()) > 0 {
-		return p.registry.GetPlayerList()[0]
-	}
-	return nil
-}
-
-func (p *playerSvc) getBackupServer() *game_pb.Player {
-	if len(p.registry.GetPlayerList()) > 1 {
-		return p.registry.GetPlayerList()[1]
-	}
-	return nil
-}
-
 func (p *playerSvc) getHeartbeatPlayers() (prev, next *game_pb.Player) {
 	if len(p.registry.GetPlayerList()) <= 1 {
 		return nil, nil
@@ -94,44 +69,30 @@ func (p *playerSvc) getHeartbeatPlayers() (prev, next *game_pb.Player) {
 	return
 }
 
-func connectToPlayer(player *game_pb.Player) game_pb.GameServiceClient {
-	if player == nil {
-		return nil
-	}
-	conn, err := grpc.Dial(
-		fmt.Sprintf("%s:%d", player.GetIp(), player.GetPort()),
-		grpc.WithInsecure(),
-	)
-	if err != nil {
-		log.Println("err connecting to player", player, err)
-		return nil
-	}
-	return game_pb.NewGameServiceClient(conn)
-}
-
 func (p *playerSvc) refreshHeartbeatNodes() {
 	p.registry = p.gameSvc.GetLocalRegistry()
 	prev, next := p.getHeartbeatPlayers()
 	if prev.GetPlayerId() != p.prevNode.GetPlayerId() {
 		// previous neighbour is changed now, connect to the new one
 		p.prevNode = prev
-		p.prevNodeClient = connectToPlayer(prev)
+		p.prevNodeClient = service.ConnectToPlayer(prev)
 	}
 	if next.GetPlayerId() != p.prevNode.GetPlayerId() {
 		// next neighbour is changed now, connect to the new one
 		p.nextNode = next
-		p.nextNodeClient = connectToPlayer(next)
+		p.nextNodeClient = service.ConnectToPlayer(next)
 	}
 }
 
 func (p *playerSvc) refreshPrimaryNode() {
-	primary := p.getPrimaryServer()
-	if primary.GetPlayerId() != p.gamePrimary.GetPlayerId() {
+	primary := service.GetPrimaryServer(p.registry)
+	if p.gamePrimary == nil || primary.GetPlayerId() != p.gamePrimary.GetPlayerId() {
 		p.gamePrimary = primary
-		p.gamePrimaryClient = connectToPlayer(primary)
+		p.gamePrimaryClient = service.ConnectToPlayer(primary)
 	}
 }
 
+// contact tracker to report neighbour missing
 func (p *playerSvc) reportMissingNode(ctx context.Context, playerId string) {
 	resp, err := p.tracker.ReportMissing(ctx, &game_pb.Missing{PlayerId: playerId})
 	if err != nil {
@@ -188,7 +149,7 @@ func (p *playerSvc) StartServing() {
 		log.Fatalf("Failed to listen for grpc: %v", err)
 	}
 	p.listener = grpcListener
-	p.gameSvc = service.NewGameSvc(p.deriveRole(), p.id, p.gridSize, p.treasureAmount, p.registry)
+	p.gameSvc = service.NewGameSvc(p.id, p.gridSize, p.treasureAmount, p.registry)
 	svr := grpc.NewServer()
 	game_pb.RegisterGameServiceServer(svr, p.gameSvc)
 
@@ -268,15 +229,14 @@ func (p *playerSvc) Start(closing chan<- struct{}) {
 	}()
 	rand.Seed(time.Now().Unix())
 	ctx := context.Background()
-	// start own server
-	p.refreshPrimaryNode()
 	t := time.NewTicker(time.Second * 2)
 	// todo mocking only
 	i := 0
 	for {
+		p.refreshPrimaryNode()
 		select {
 		case <-t.C:
-			if p.id == "33" && i >= 3 {
+			if p.id == "11" && i >= 3 {
 				close(p.shutdown)
 				p.wg.Wait()
 				return

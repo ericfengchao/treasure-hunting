@@ -1,5 +1,11 @@
 package models
 
+import (
+	"fmt"
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
+	"strings"
+)
+
 const rowTemplate = `
 <div class="row">
 	%s
@@ -87,3 +93,39 @@ const Html = `
 </body>
 </html>
 `
+
+type ViewableGameStats struct {
+	Grid         *game_pb.Grid
+	PlayerStates []*game_pb.PlayerState
+}
+
+func (s ViewableGameStats) GetGridView() string {
+	var allRows []string
+	for _, row := range s.Grid.GetSlotRows() {
+		var items []string
+		for _, slot := range row.GetSlots() {
+			slotHtml := emptySlotTemplate
+			if slot.GetTreasure() {
+				slotHtml = treasureTemplate
+			} else if slot.GetPlayerId() != "" {
+				slotHtml = fmt.Sprintf(PlayerTemplate, slot.GetPlayerId())
+			}
+			items = append(items, slotHtml)
+		}
+		rowHtml := fmt.Sprintf(rowTemplate, strings.Join(items, ""))
+		allRows = append(allRows, rowHtml)
+	}
+	gridView := strings.Join(allRows, "")
+
+	var players []string
+	for _, p := range s.PlayerStates {
+		player := &Player{
+			id:    p.PlayerId,
+			score: int(p.Score),
+		}
+		players = append(players, player.getPlayerStateHtml())
+	}
+	playerStates := fmt.Sprintf(PlayerStatesList, strings.Join(players, ""))
+
+	return fmt.Sprintf(Html, playerStates, gridView)
+}

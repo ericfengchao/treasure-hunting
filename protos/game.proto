@@ -34,7 +34,8 @@ message Grid {
 
 message CopyRequest {
     Grid grid = 1;
-    int32 state_version = 2; // game state version should be atomically incremented
+    repeated PlayerState player_states = 2;
+    int32 state_version = 3; // game state version should be atomically incremented
 }
 
 message CopyResponse {
