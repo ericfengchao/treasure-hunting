@@ -46,7 +46,7 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 		}, nil
 	} else if s.role == models.PlayerNode {
 		return &game_pb.MoveResponse{
-			Status: game_pb.TakeSlotResponse_I_AM_NOT_A_SERVER,
+			Status: game_pb.MoveResponse_I_AM_NOT_A_SERVER,
 		}, nil
 	}
 
