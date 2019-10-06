@@ -1,17 +1,21 @@
 package player_service
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service"
-	"google.golang.org/grpc"
+	"github.com/ericfengchao/treasure-hunting/service/models"
 	"log"
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
+
+	game_pb "github.com/ericfengchao/treasure-hunting/protos"
+	"github.com/ericfengchao/treasure-hunting/service"
+	"google.golang.org/grpc"
 )
 
 type playerSvc struct {
@@ -25,14 +29,17 @@ type playerSvc struct {
 	wg       *sync.WaitGroup
 
 	// primary server
+	primaryConn       *grpc.ClientConn
 	gamePrimaryClient game_pb.GameServiceClient
 	gamePrimary       *game_pb.Player
 
 	// prev heartbeat
+	prevConn       *grpc.ClientConn
 	prevNodeClient game_pb.GameServiceClient
 	prevNode       *game_pb.Player
 
 	// next heartbeat
+	nextConn       *grpc.ClientConn
 	nextNodeClient game_pb.GameServiceClient
 	nextNode       *game_pb.Player
 
@@ -70,22 +77,31 @@ func (p *playerSvc) refreshHeartbeatNodes() {
 	p.registry = p.gameSvc.GetLocalRegistry()
 	prev, next := p.getHeartbeatPlayers()
 	if prev.GetPlayerId() != p.prevNode.GetPlayerId() {
-		// previous neighbour is changed now, connect to the new one
+		if p.prevConn != nil {
+			p.prevConn.Close()
+		}
 		p.prevNode = prev
-		p.prevNodeClient = service.ConnectToPlayer(prev)
+		// previous neighbour is changed now, connect to the new one
+		p.prevConn, p.prevNodeClient = service.ConnectToPlayer(prev)
 	}
-	if next.GetPlayerId() != p.prevNode.GetPlayerId() {
+	if next.GetPlayerId() != p.nextNode.GetPlayerId() {
+		if p.nextConn != nil {
+			p.nextConn.Close()
+		}
 		// next neighbour is changed now, connect to the new one
 		p.nextNode = next
-		p.nextNodeClient = service.ConnectToPlayer(next)
+		p.nextConn, p.nextNodeClient = service.ConnectToPlayer(next)
 	}
 }
 
 func (p *playerSvc) refreshPrimaryNode() {
 	primary := service.GetPrimaryServer(p.registry)
 	if p.gamePrimary == nil || primary.GetPlayerId() != p.gamePrimary.GetPlayerId() {
+		if p.primaryConn != nil {
+			p.primaryConn.Close()
+		}
 		p.gamePrimary = primary
-		p.gamePrimaryClient = service.ConnectToPlayer(primary)
+		p.primaryConn, p.gamePrimaryClient = service.ConnectToPlayer(primary)
 	}
 }
 
@@ -116,6 +132,7 @@ func (p *playerSvc) StartHeartbeat() {
 					Registry: p.registry,
 				})
 				if err != nil {
+					log.Printf("player %s hearting prevNode %s errored: %s", p.id, p.prevNode.PlayerId, err.Error())
 					// player is missing
 					p.reportMissingNode(ctx, p.prevNode.PlayerId)
 				}
@@ -126,6 +143,7 @@ func (p *playerSvc) StartHeartbeat() {
 					Registry: p.registry,
 				})
 				if err != nil {
+					log.Printf("player %s hearting nextNode %s errored: %s", p.id, p.nextNode.PlayerId, err.Error())
 					// player is missing
 					p.reportMissingNode(ctx, p.nextNode.PlayerId)
 				}
@@ -160,14 +178,49 @@ func (p *playerSvc) StartServing() {
 	log.Println("player grpc starts listening now")
 
 	go p.StartHeartbeat()
-
 	log.Println("player heartbeat starts now")
-
 	// http
 	http.Handle("/", p.gameSvc)
 	if err := http.ListenAndServe(fmt.Sprintf("localhost:%d", p.assignedPort+1), nil); err != nil {
 		log.Printf("failed to start http server: %v", err)
 		return
+	}
+}
+
+func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
+	defer func() {
+		closing <- struct{}{}
+	}()
+	ctx := context.Background()
+	p.refreshPrimaryNode()
+	reader := bufio.NewScanner(os.Stdin)
+	for reader.Scan() {
+		input := reader.Text()
+		move, err := service.ParseDirection(input)
+		if err != nil {
+			log.Printf("fail to parse the input, err: %s", err.Error())
+			continue
+		}
+		switch move {
+		case models.Exit:
+			close(p.shutdown)
+			p.wg.Wait()
+			p.Close()
+			log.Println("receive shutting down signal")
+			return
+		case models.Up, models.Right, models.Down, models.Left:
+			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+				Id:   p.id,
+				Move: int32(move),
+			})
+			if err != nil {
+				log.Println(err)
+			} else {
+				log.Println(fmt.Sprintf("player-%s move %d done", p.id, move), resp.Status.String())
+				p.playerStates = resp.GetPlayerStates()
+			}
+		}
+		//time.Sleep(time.Millisecond * 500)
 	}
 }
 
@@ -188,25 +241,20 @@ func (p *playerSvc) Start(closing chan<- struct{}) {
 				close(p.shutdown)
 				p.wg.Wait()
 				return
-			} else if i >= 15 {
+			} else if i >= 10 {
 				close(p.shutdown)
 				p.wg.Wait()
 				return
 			}
-			row, col := rand.Intn(p.gridSize), rand.Intn(p.gridSize)
-			resp, err := p.gamePrimaryClient.TakeSlot(ctx, &game_pb.TakeSlotRequest{
-				Id: p.id,
-				MoveToCoordinate: &game_pb.Coordinate{
-					//Row: int32(i % p.gridSize),
-					//Col: int32(i % p.gridSize),
-					Row: int32(row),
-					Col: int32(col),
-				},
+			move := int32(rand.Intn(5))
+			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+				Id:   p.id,
+				Move: move,
 			})
 			if err != nil {
 				log.Println(err)
 			} else {
-				log.Println(fmt.Sprintf("player-%s row-%d col-%d", p.id, row, col), resp.Status.String())
+				log.Println(fmt.Sprintf("player-%s move-%d", p.id, move), resp.Status.String())
 				p.playerStates = resp.GetPlayerStates()
 			}
 			i++

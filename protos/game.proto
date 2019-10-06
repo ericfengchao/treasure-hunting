@@ -4,16 +4,17 @@ package game_pb;
 import "tracker.proto";
 
 service GameService {
-    rpc TakeSlot (TakeSlotRequest) returns (TakeSlotResponse) {}
     rpc StatusCopy (CopyRequest) returns (CopyResponse) {}
+
     rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse) {}
+
+    rpc MovePlayer (MoveRequest) returns (MoveResponse) {}
 }
 
 message Coordinate {
     int32 row = 1;
     int32 col = 2;
 }
-
 message Slot {
     bool treasure = 1;
     string player_id = 2;
@@ -48,18 +49,12 @@ message CopyResponse {
     Status status = 1;
 }
 
-message TakeSlotRequest {
+message MoveRequest {
     string id = 1;
-    Coordinate move_to_coordinate = 2;
+    int32 move = 2;
 }
 
-message PlayerState {
-    string player_id = 1;
-    Coordinate current_position = 2;
-    int32 score = 3;
-}
-
-message TakeSlotResponse {
+message MoveResponse {
     enum Status {
         OK = 0; // ok means no error
         INVALID_INPUT = 1; // bad request
@@ -70,6 +65,12 @@ message TakeSlotResponse {
     }
     Status status = 1;
     repeated PlayerState player_states = 2;
+}
+
+message PlayerState {
+    string player_id = 1;
+    Coordinate current_position = 2;
+    int32 score = 3;
 }
 
 message HeartbeatRequest {

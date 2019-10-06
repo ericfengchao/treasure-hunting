@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"log"
 	"net/http"
 	"sync"
@@ -20,7 +21,10 @@ type svc struct {
 
 	game     models.Gamer
 	gameCopy *game_pb.CopyRequest
-	slave    game_pb.GameServiceClient
+
+	slaveConn   *grpc.ClientConn
+	slaveNode   *game_pb.Player
+	slaveClient game_pb.GameServiceClient
 }
 
 func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -54,16 +58,17 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 	}
 }
 
-func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game_pb.TakeSlotResponse, error) {
+func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_pb.MoveResponse, error) {
 	log.Println(req)
 	// only take requests when i am a primary server node
+	// only take requests when i am a primary server node
 	if s.role == models.BackupNode {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_I_AM_ONLY_BACKUP,
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_I_AM_ONLY_BACKUP,
 		}, nil
 	} else if s.role == models.PlayerNode {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_I_AM_NOT_A_SERVER,
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_I_AM_NOT_A_SERVER,
 		}, nil
 	}
 
@@ -73,38 +78,35 @@ func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game
 	// 3. reply player
 
 	// slave healthcheck
-	if s.slave == nil {
+	if s.slaveClient == nil {
 		s.roleSetup()
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLAVE_INIT_IN_PROGRESS,
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
 		}, nil
 	}
 	// dummy game state sync
-	syncResp, syncErr := s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+	syncResp, syncErr := s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
 	if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
 		log.Printf("syncing with slave not successful: %s, %v", syncResp.GetStatus().String(), syncErr)
 		// refresh slave
 		s.roleSetup()
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLAVE_INIT_IN_PROGRESS,
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
 		}, nil
 	}
 
-	row := int(req.GetMoveToCoordinate().GetRow())
-	col := int(req.GetMoveToCoordinate().GetCol())
-
-	_, err := s.game.PlacePlayer(req.GetId(), row, col)
+	err := s.game.MovePlayer(req.GetId(), models.Movement(int(req.GetMove())))
 	if err == models.InvalidCoordinates {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_INVALID_INPUT,
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_INVALID_INPUT,
 		}, nil
 	} else if err == models.PlaceAlreadyTaken {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLOT_TAKEN,
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLOT_TAKEN,
 		}, nil
 	} else if err == models.SlaveIsDown {
-		return &game_pb.TakeSlotResponse{
-			Status: game_pb.TakeSlotResponse_SLAVE_INIT_IN_PROGRESS,
+		return &game_pb.MoveResponse{
+			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
 		}, nil
 	} else if err != nil {
 		// unknown error occurred. e.g. io timeout. caller should retry
@@ -112,11 +114,11 @@ func (s *svc) TakeSlot(ctx context.Context, req *game_pb.TakeSlotRequest) (*game
 	}
 
 	// real sync. if failure happens, the next request will detect
-	s.slave.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+	s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
 
-	return &game_pb.TakeSlotResponse{
+	return &game_pb.MoveResponse{
 		PlayerStates: s.game.GetGameStates(),
-		Status:       game_pb.TakeSlotResponse_OK,
+		Status:       game_pb.MoveResponse_OK,
 	}, nil
 }
 
@@ -124,8 +126,7 @@ func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*ga
 	s.rwLock.RLock()
 
 	// if registry changes, there might be a role change as well
-	log.Println(fmt.Sprintf("player %s received heartbeat from %s, registry version: %d", s.playerId, req.PlayerId, req.Registry.GetVersion()))
-	log.Println(fmt.Sprintf("player %s received heartbeat", s.playerId), req)
+	//log.Println(fmt.Sprintf("player %s received heartbeat from %s, registry version: %d", s.playerId, req.PlayerId, req.Registry.GetVersion()))
 	if s.registry.GetVersion() < req.GetRegistry().GetVersion() {
 		s.registry = req.GetRegistry()
 		defer s.roleSetup()
@@ -162,8 +163,14 @@ func (s *svc) roleSetup() {
 		if oldRole == models.BackupNode {
 			s.game = models.NewGameFromGameCopy(s.gameCopy)
 		}
-		backupNode := GetBackupServer(s.registry)
-		s.slave = ConnectToPlayer(backupNode)
+		newBackupNode := GetBackupServer(s.registry)
+		if s.slaveNode == nil || s.slaveClient == nil || s.slaveNode.GetPlayerId() != newBackupNode.GetPlayerId() {
+			if s.slaveConn != nil {
+				s.slaveConn.Close()
+			}
+			s.slaveNode = newBackupNode
+			s.slaveConn, s.slaveClient = ConnectToPlayer(newBackupNode)
+		}
 	}
 	return
 }

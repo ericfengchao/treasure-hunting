@@ -33,21 +33,41 @@ func (g *game) GetSerialisedGameStats() *game_pb.CopyRequest {
 
 // atomic step. Either updated all required information as well as synced with slave Or nothing happened
 // atomicity is realised by sync/RWMutex. If game has other member function, Lock/Unlock must be used there as well
-func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
+func (g *game) MovePlayer(playerId string, move Movement) error {
 	g.rwLock.Lock()
 	defer g.rwLock.Unlock()
 
-	// check if placeable
-	if err := g.grid.isPlaceable(row, col); err != nil {
-		return false, err
+	// move is received from the endpoint, need listening to the keyboard
+	var moveRow, moveCol int
+	switch move {
+	case Stay:
+		return nil
+	case Up:
+		moveRow, moveCol = -1, 0
+	case Right:
+		moveRow, moveCol = 0, 1
+	case Down:
+		moveRow, moveCol = 1, 0
+	case Left:
+		moveRow, moveCol = 0, -1
 	}
 
-	// sync with slave
-	//var syncedWithSlave bool
-	// TODO sync with slave
-	//if !syncedWithSlave {
-	//	return false, SlaveIsDown
-	//}
+	// update player
+	if p, ok := g.playerList[playerId]; ok {
+		newRow := p.currentRow + moveRow
+		newCol := p.currentCol + moveCol
+		return g.placePlayer(playerId, newRow, newCol)
+	} else {
+		initialRow, initialCol := g.grid.getRandomEmptySlot()
+		return g.placePlayer(playerId, initialRow, initialCol)
+	}
+}
+
+func (g *game) placePlayer(playerId string, row, col int) error {
+	// check if placeable
+	if err := g.grid.isPlaceable(row, col); err != nil {
+		return err
+	}
 
 	// once slave is committed, start writing in master only
 	huntedTreasure := g.grid.placePlayer(playerId, row, col)
@@ -75,7 +95,7 @@ func (g *game) PlacePlayer(playerId string, row, col int) (bool, error) {
 	// increment version
 	g.stateVersion = g.stateVersion + 1
 
-	return huntedTreasure, nil
+	return nil
 }
 
 func (g *game) GetGameStates() []*game_pb.PlayerState {

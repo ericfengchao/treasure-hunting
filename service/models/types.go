@@ -12,7 +12,7 @@ type Gamer interface {
 	GetGridView() string
 	GetSerialisedGameStats() *game_pb.CopyRequest
 	// write
-	PlacePlayer(playerId string, row, col int) (bool, error)
+	MovePlayer(playerId string, move Movement) error
 	//UpdateFullCopy(slots [][]*game_pb.Slot, treasureSlots []int, playerSlots map[string]int, emptySlots []int, stateVersion int)
 }
 
@@ -20,6 +20,7 @@ var (
 	InvalidCoordinates = errors.New("invalid coordinates")
 	PlaceAlreadyTaken  = errors.New("place is already taken")
 	SlaveIsDown        = errors.New("slave is down")
+	GridIsFull         = errors.New("grid is full")
 )
 
 type Role string
@@ -29,3 +30,15 @@ const (
 	BackupNode  Role = "Backup"
 	PlayerNode  Role = "Player"
 )
+
+type Movement int
+
+const (
+	Stay Movement = iota
+	Up
+	Right
+	Down
+	Left
+)
+
+const Exit Movement = 9
