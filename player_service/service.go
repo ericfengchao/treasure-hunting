@@ -201,26 +201,6 @@ func (p *playerSvc) KeyboardListen() {
 }
 
 func (p *playerSvc) Initialize() {
-	rand.Seed(time.Now().Unix())
-	p.refreshPrimaryNode()
-	ctx := context.Background()
-
-	row, col := rand.Intn(p.gridSize), rand.Intn(p.gridSize)
-	resp, err := p.gamePrimaryClient.TakeSlot(ctx, &game_pb.TakeSlotRequest{
-		Id: p.id,
-		MoveToCoordinate: &game_pb.Coordinate{
-			//Row: int32(i % p.gridSize),
-			//Col: int32(i % p.gridSize),
-			Row: int32(row),
-			Col: int32(col),
-		},
-	})
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Println(fmt.Sprintf("player-%s row-%d col-%d", p.id, row, col), resp.Status.String())
-		p.playerStates = resp.GetPlayerStates()
-	}
 }
 
 func (p *playerSvc) Start(closing chan<- struct{}) {
