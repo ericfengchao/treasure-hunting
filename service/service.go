@@ -41,7 +41,7 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 	defer s.rwLock.Unlock()
 
 	log.Println(req)
-	if s.role != models.BackupNode {
+	if s.role != models.BackupNode && s.playerId != s.slaveNode.GetPlayerId() {
 		return &game_pb.CopyResponse{
 			Status: game_pb.CopyResponse_I_AM_NOT_BACKUP,
 		}, nil
@@ -78,21 +78,22 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 	// 3. reply player
 
 	// slave healthcheck
-	if s.slaveClient == nil {
-		s.roleSetup()
-		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
-		}, nil
-	}
-	// dummy game state sync
-	syncResp, syncErr := s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
-	if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
-		log.Printf("syncing with slave not successful: %s, %v", syncResp.GetStatus().String(), syncErr)
-		// refresh slave
-		s.roleSetup()
-		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
-		}, nil
+	if len(s.registry.GetPlayerList()) > 1 {
+		if s.slaveClient == nil {
+			s.roleSetup()
+			return &game_pb.MoveResponse{
+				Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+			}, nil
+		}
+		syncResp, syncErr := s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+		if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
+			log.Printf("syncing with slave not successful: %s, %v", syncResp.GetStatus().String(), syncErr)
+			// refresh slave
+			s.roleSetup()
+			return &game_pb.MoveResponse{
+				Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+			}, nil
+		}
 	}
 
 	err := s.game.MovePlayer(req.GetId(), models.Movement(int(req.GetMove())))
@@ -114,7 +115,9 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 	}
 
 	// real sync. if failure happens, the next request will detect
-	s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+	if len(s.registry.GetPlayerList()) > 1 {
+		s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+	}
 
 	return &game_pb.MoveResponse{
 		PlayerStates: s.game.GetGameStates(),
@@ -151,6 +154,7 @@ func (s *svc) roleSetup() {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
+	log.Println("player", s.playerId, s.registry)
 	oldRole := s.role
 	s.role = s.deriveRole()
 
@@ -167,6 +171,9 @@ func (s *svc) roleSetup() {
 		// sync slave
 		if oldRole == models.BackupNode {
 			s.game = models.NewGameFromGameCopy(s.gameCopy)
+		}
+		if len(s.registry.GetPlayerList()) <= 1 {
+			return
 		}
 		newBackupNode := GetBackupServer(s.registry)
 		if s.slaveNode == nil || s.slaveClient == nil || s.slaveNode.GetPlayerId() != newBackupNode.GetPlayerId() {

@@ -36,6 +36,8 @@ func GetPrimaryServer(registry *game_pb.Registry) *game_pb.Player {
 func GetBackupServer(registry *game_pb.Registry) *game_pb.Player {
 	if len(registry.GetPlayerList()) > 1 {
 		return registry.GetPlayerList()[1]
+	} else if len(registry.GetPlayerList()) == 1 {
+		return registry.GetPlayerList()[0]
 	}
 	return nil
 }
