@@ -2,6 +2,7 @@ package treasure_hunting
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -154,15 +155,16 @@ func (p PlayerStatesView) getPlayerListView() string {
 	for _, ps := range p.PlayerStates {
 		pid := ps.PlayerId
 		if pid == p.MasterId {
-			pid = "(Primary)" + pid
+			pid = pid + " (Primary)"
 		} else if pid == p.SlaveId {
-			pid = "(Backup)" + pid
+			pid = pid + " (Backup)"
 		}
 		playerM := &PlayerModel{
 			id:    pid,
 			score: int(ps.Score),
 		}
 		playerLists = append(playerLists, playerM.getPlayerStateHtml())
+		sort.Strings(playerLists)
 	}
 	playersHtml := fmt.Sprintf(PlayerStatesList, strings.Join(playerLists, ""))
 	return playersHtml
