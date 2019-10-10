@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/ericfengchao/treasure-hunting/player_service"
+	"github.com/ericfengchao/treasure-hunting"
 	"log"
 	"os"
 	"time"
@@ -19,7 +19,7 @@ func main() {
 	trackerPort := os.Args[2]
 	playerId := os.Args[3]
 
-	playerSvc := player_service.NewPlayerSvc(trackerHost, trackerPort, playerId)
+	playerSvc := treasure_hunting.NewPlayerSvc(trackerHost, trackerPort, playerId)
 	defer playerSvc.Close()
 	//KeyboardListen
 	// playerSvc.Initialize()

@@ -1,12 +1,10 @@
-package models
+package treasure_hunting
 
 import (
 	"fmt"
 	"log"
 	"strings"
 	"sync"
-
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 )
 
 type game struct {
@@ -18,11 +16,11 @@ type game struct {
 	stateVersion int // game state version should be atomically incremented
 
 	// Player management
-	playerList map[string]*Player
+	playerList map[string]*PlayerModel
 }
 
 // based on the new player registry, determine if need to clean up dead players
-func (g *game) CleanupPlayer(newPlayerList []*game_pb.Player) {
+func (g *game) CleanupPlayer(newPlayerList []*Player) {
 	g.rwLock.Lock()
 	defer g.rwLock.Unlock()
 
@@ -39,11 +37,11 @@ func (g *game) CleanupPlayer(newPlayerList []*game_pb.Player) {
 	}
 }
 
-func (g *game) GetSerialisedGameStats() *game_pb.CopyRequest {
+func (g *game) GetSerialisedGameStats() *CopyRequest {
 	g.rwLock.RLock()
 	defer g.rwLock.RUnlock()
 
-	return &game_pb.CopyRequest{
+	return &CopyRequest{
 		Grid:         g.grid.getSerialisedGameStates(),
 		PlayerStates: g.GetGameStates(),
 		StateVersion: int32(g.stateVersion),
@@ -103,7 +101,7 @@ func (g *game) placePlayer(playerId string, row, col int) error {
 		if huntedTreasure {
 			score = 1
 		}
-		g.playerList[playerId] = &Player{
+		g.playerList[playerId] = &PlayerModel{
 			id:         playerId,
 			score:      score,
 			currentRow: row,
@@ -117,15 +115,15 @@ func (g *game) placePlayer(playerId string, row, col int) error {
 	return nil
 }
 
-func (g *game) GetGameStates() []*game_pb.PlayerState {
+func (g *game) GetGameStates() []*PlayerState {
 	g.rwLock.RLock()
 	defer g.rwLock.RUnlock()
 
-	playersSerialised := make([]*game_pb.PlayerState, 0)
+	playersSerialised := make([]*PlayerState, 0)
 	for _, player := range g.playerList {
-		playersSerialised = append(playersSerialised, &game_pb.PlayerState{
+		playersSerialised = append(playersSerialised, &PlayerState{
 			PlayerId: player.id,
-			CurrentPosition: &game_pb.Coordinate{
+			CurrentPosition: &Coordinate{
 				Row: int32(player.currentRow),
 				Col: int32(player.currentCol),
 			},
@@ -149,7 +147,7 @@ func (g *game) getPlayerStatesListHtml() string {
 	return fmt.Sprintf(PlayerStatesList, strings.Join(players, ""))
 }
 
-func NewGameFromGameCopy(copy *game_pb.CopyRequest) Gamer {
+func NewGameFromGameCopy(copy *CopyRequest) Gamer {
 	fmt.Println("recover from game copy", copy)
 	gridCopy := copy.GetGrid()
 	originSlot := make([][]*slot, len(gridCopy.GetSlotRows()))
@@ -176,9 +174,9 @@ func NewGameFromGameCopy(copy *game_pb.CopyRequest) Gamer {
 	for playerId, slotId := range gridCopy.GetPlayerSlots() {
 		playerSlots[playerId] = int(slotId)
 	}
-	playerStates := make(map[string]*Player)
+	playerStates := make(map[string]*PlayerModel)
 	for _, p := range copy.GetPlayerStates() {
-		playerStates[p.PlayerId] = &Player{
+		playerStates[p.PlayerId] = &PlayerModel{
 			id:         p.PlayerId,
 			score:      int(p.Score),
 			currentRow: int(p.CurrentPosition.GetRow()),
@@ -198,6 +196,6 @@ func NewGame(gridSize int, treasureAmount int) Gamer {
 	return &game{
 		grid:       newGrid(gridSize, gridSize, treasureAmount),
 		rwLock:     &sync.RWMutex{},
-		playerList: make(map[string]*Player),
+		playerList: make(map[string]*PlayerModel),
 	}
 }

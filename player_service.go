@@ -1,10 +1,9 @@
-package player_service
+package treasure_hunting
 
 import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/ericfengchao/treasure-hunting/service/models"
 	"log"
 	"math/rand"
 	"net"
@@ -13,15 +12,18 @@ import (
 	"sync"
 	"time"
 
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service"
 	"google.golang.org/grpc"
 )
 
+type PlayerService interface {
+	Start(chan<- struct{})
+	StartHeartbeat()
+}
+
 type playerSvc struct {
-	tracker     game_pb.TrackerServiceClient
+	tracker     TrackerServiceClient
 	trackerConn *grpc.ClientConn
-	registry    *game_pb.Registry
+	registry    *Registry
 
 	gridSize, treasureAmount int
 
@@ -30,24 +32,24 @@ type playerSvc struct {
 
 	// primary server
 	primaryConn       *grpc.ClientConn
-	gamePrimaryClient game_pb.GameServiceClient
-	gamePrimary       *game_pb.Player
+	gamePrimaryClient GameServiceClient
+	gamePrimary       *Player
 
 	// prev heartbeat
 	prevConn       *grpc.ClientConn
-	prevNodeClient game_pb.GameServiceClient
-	prevNode       *game_pb.Player
+	prevNodeClient GameServiceClient
+	prevNode       *Player
 
 	// next heartbeat
 	nextConn       *grpc.ClientConn
-	nextNodeClient game_pb.GameServiceClient
-	nextNode       *game_pb.Player
+	nextNodeClient GameServiceClient
+	nextNode       *Player
 
 	assignedPort int
 	id           string
 
-	playerStates []*game_pb.PlayerState
-	gameSvc      service.GameService
+	playerStates []*PlayerState
+	gameSvc      GameService
 	listener     net.Listener
 }
 
@@ -57,7 +59,7 @@ func (p *playerSvc) Close() {
 	}
 }
 
-func (p *playerSvc) getHeartbeatPlayers() (prev, next *game_pb.Player) {
+func (p *playerSvc) getHeartbeatPlayers() (prev, next *Player) {
 	registry := p.gameSvc.GetLocalRegistry()
 	if len(registry.GetPlayerList()) <= 1 {
 		return nil, nil
@@ -82,7 +84,7 @@ func (p *playerSvc) refreshHeartbeatNodes() {
 		}
 		p.prevNode = prev
 		// previous neighbour is changed now, connect to the new one
-		p.prevConn, p.prevNodeClient = service.ConnectToPlayer(prev)
+		p.prevConn, p.prevNodeClient = ConnectToPlayer(prev)
 	}
 	if next.GetPlayerId() != p.nextNode.GetPlayerId() {
 		if p.nextConn != nil {
@@ -90,7 +92,7 @@ func (p *playerSvc) refreshHeartbeatNodes() {
 		}
 		// next neighbour is changed now, connect to the new one
 		p.nextNode = next
-		p.nextConn, p.nextNodeClient = service.ConnectToPlayer(next)
+		p.nextConn, p.nextNodeClient = ConnectToPlayer(next)
 	}
 	//fmt.Println("heatbeating nodes prev:", p.prevNode)
 	//fmt.Println("heatbeating nodes next:", p.nextNode)
@@ -98,18 +100,18 @@ func (p *playerSvc) refreshHeartbeatNodes() {
 
 func (p *playerSvc) refreshPrimaryNode() {
 	registry := p.gameSvc.GetLocalRegistry()
-	primary := service.GetPrimaryServer(registry)
+	primary := GetPrimaryServer(registry)
 	if p.primaryConn != nil {
 		p.primaryConn.Close()
 	}
 	p.gamePrimary = primary
-	p.primaryConn, p.gamePrimaryClient = service.ConnectToPlayer(primary)
+	p.primaryConn, p.gamePrimaryClient = ConnectToPlayer(primary)
 	fmt.Printf("master is now %s, %v, %v\n", p.gamePrimary.GetPlayerId(), p.primaryConn, p.gamePrimaryClient)
 }
 
 // contact tracker to report neighbour missing
 func (p *playerSvc) reportMissingNode(ctx context.Context, playerId string) {
-	resp, err := p.tracker.ReportMissing(ctx, &game_pb.Missing{PlayerId: playerId})
+	resp, err := p.tracker.ReportMissing(ctx, &Missing{PlayerId: playerId})
 	if err != nil {
 		log.Println("report missing failed", playerId, err)
 		// best effort
@@ -130,7 +132,7 @@ func (p *playerSvc) StartHeartbeat() {
 		case <-t.C:
 			p.refreshHeartbeatNodes()
 			if p.prevNodeClient != nil {
-				_, err := p.prevNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
+				_, err := p.prevNodeClient.Heartbeat(ctx, &HeartbeatRequest{
 					PlayerId: p.id,
 					Registry: p.gameSvc.GetLocalRegistry(),
 				})
@@ -141,7 +143,7 @@ func (p *playerSvc) StartHeartbeat() {
 				}
 			}
 			if p.nextNodeClient != nil {
-				_, err := p.nextNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
+				_, err := p.nextNodeClient.Heartbeat(ctx, &HeartbeatRequest{
 					PlayerId: p.id,
 					Registry: p.gameSvc.GetLocalRegistry(),
 				})
@@ -167,9 +169,9 @@ func (p *playerSvc) StartServing() {
 		log.Fatalf("Failed to listen for grpc: %v", err)
 	}
 	p.listener = grpcListener
-	p.gameSvc = service.NewGameSvc(p.id, p.gridSize, p.treasureAmount, p.registry)
+	p.gameSvc = NewGameSvc(p.id, p.gridSize, p.treasureAmount, p.registry)
 	svr := grpc.NewServer()
-	game_pb.RegisterGameServiceServer(svr, p.gameSvc)
+	RegisterGameServiceServer(svr, p.gameSvc)
 
 	go func() {
 		if err := svr.Serve(grpcListener); err != nil {
@@ -231,21 +233,21 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 	for reader.Scan() {
 		input := reader.Text()
 		fmt.Printf(">>>>>>player-%s: %s\n", p.id, input)
-		move, err := service.ParseDirection(input)
+		move, err := ParseDirection(input)
 		if err != nil {
 			log.Printf("fail to parse the input, err: %s", err.Error())
 			continue
 		}
 		switch move {
-		case models.Exit:
+		case Exit:
 			close(p.shutdown)
 			p.wg.Wait()
 			p.Close()
 			log.Println("receive shutting down signal")
 			return
-		case models.West, models.South, models.East, models.North:
+		case West, South, East, North:
 			p.refreshPrimaryNode()
-			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &MoveRequest{
 				Id:   p.id,
 				Move: int32(move),
 			})
@@ -282,7 +284,7 @@ func (p *playerSvc) Start(closing chan<- struct{}) {
 				return
 			}
 			move := int32(rand.Intn(5))
-			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &MoveRequest{
 				Id:   p.id,
 				Move: move,
 			})
@@ -302,10 +304,10 @@ func NewPlayerSvc(trackerHost, trackerPort string, id string) *playerSvc {
 	if err != nil {
 		log.Fatal("failed to connect to tracker", err)
 	}
-	trackerClient := game_pb.NewTrackerServiceClient(conn)
+	trackerClient := NewTrackerServiceClient(conn)
 
 	// register with tracker, confirm own identity
-	resp, err := trackerClient.Register(context.Background(), &game_pb.RegisterRequest{PlayerId: id})
+	resp, err := trackerClient.Register(context.Background(), &RegisterRequest{PlayerId: id})
 	if err != nil {
 		log.Fatal("failed to bootstrap with tracker", err)
 	} else {
