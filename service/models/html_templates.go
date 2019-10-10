@@ -12,19 +12,19 @@ const rowTemplate = `
 </div>
 `
 const treasureTemplate = `
-	<div class="column" style="background-color:#aaa; border-style: solid; border-color: coral;">
-    	<p>Treasure</p>
+	<div class="column treasure">
+    	<p class="cell">*</p>
   	</div>
 `
 
 const emptySlotTemplate = `
-	<div class="column" style="border-style: solid; border-color: coral;">
+	<div class="column">
     	<p></p>
   	</div>
 `
 const PlayerTemplate = `
-	<div class="column" style="background-color:#58ACFA; border-style: solid; border-color: coral;">
-    	<p>%s</p>
+	<div class="column player">
+    	<p class="cell">%s</p>
   	</div>
 `
 
@@ -39,7 +39,7 @@ const PlayerStatesList = `
 
 const PlayerState = `
 	<div class="row">
-		<p>%s: %d</p>
+		<div>%s: %d</div>
 	</div>
 `
 
@@ -50,6 +50,7 @@ const Html = `
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
 * {
+  font-family: Arial, Helvetica, sans-serif;
   box-sizing: border-box;
 }
 
@@ -63,12 +64,25 @@ const Html = `
   width: 50%%;
 }
 
+.treasure {
+  background-color: #2164f4;
+}
+
+.player {
+  background-color: #58ACFA;
+}
+
 /* Create two equal columns that floats next to each other */
 .column {
   float: left;
   width: 100px;
   height: 100px;
   padding: 1px;
+  border-style: solid; 
+  border-color: coral; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
 }
 
 /* Clear floats after the columns */
@@ -77,6 +91,12 @@ const Html = `
   display: table;
   clear: both;
   border-color: coral;
+}
+
+.cell {
+  color: white;
+  font-size: 20px;
+  
 }
 
 </style>
