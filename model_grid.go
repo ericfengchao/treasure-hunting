@@ -2,6 +2,7 @@ package treasure_hunting
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -138,11 +139,11 @@ func (g *grid) placePlayer(playerId string, row, col int) bool {
 		g.slots[newTreasureRow][newTreasureCol].placeTreasure()
 	}
 
-	//log.Println("============DEBUG==========")
-	//log.Println(g.treasureSlots)
-	//log.Println(g.playerSlots)
-	//log.Println(g.emptySlots)
-	//log.Println("============DEBUG==========")
+	log.Println("============DEBUG==========")
+	log.Println(g.treasureSlots)
+	log.Println(g.playerSlots)
+	log.Println(g.emptySlots)
+	log.Println("============DEBUG==========")
 
 	return huntedTreasure
 }
@@ -174,6 +175,7 @@ func (g *grid) removePlayer(playerId string) {
 		row, col := g.getRowCol(origPos)
 		g.slots[row][col].removePlayer()
 		g.emptySlots = append(g.emptySlots, origPos)
+		delete(g.playerSlots, playerId)
 	}
 }
 
@@ -201,7 +203,7 @@ func NewGridWithGameCopy(slots [][]*slot, treasureSlots []int, playerSlots map[s
 		slots:         slots,
 		treasureSlots: treasureSlots,
 		playerSlots:   playerSlots,
-		emptySlots:    treasureSlots,
+		emptySlots:    emptySlots,
 	}
 }
 
