@@ -56,6 +56,7 @@ func (g *game) MovePlayer(playerId string, move Movement) error {
 	g.rwLock.Lock()
 	defer g.rwLock.Unlock()
 
+	log.Printf(">>>>>>>.MOVING player %s with MOVEMENT %v", playerId, move)
 	// update player
 	if p, ok := g.playerList[playerId]; ok {
 		// move is received from the endpoint, need listening to the keyboard

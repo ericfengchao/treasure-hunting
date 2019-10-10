@@ -122,7 +122,8 @@ func (p *playerSvc) reportMissingNode(ctx context.Context, playerId string) {
 func (p *playerSvc) StartHeartbeat() {
 	p.wg.Add(1)
 	defer p.wg.Done()
-	t := time.NewTicker(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 100)
+	t := time.NewTicker(time.Millisecond * 500)
 	ctx := context.Background()
 	for {
 		select {
@@ -208,17 +209,25 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 	defer func() {
 		closing <- struct{}{}
 	}()
-	time.Sleep(time.Millisecond * 500)
 	ctx := context.Background()
-	p.refreshPrimaryNode()
-	// dummy move to get initial states
-	resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
-		Id:   p.id,
-		Move: 0,
-	})
-	fmt.Println(resp, err)
+	//p.refreshPrimaryNode()
+	//// dummy move to get initial states
+	//resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+	//	Id:   p.id,
+	//	Move: 0,
+	//})
+	//log.Println("player first dummy move", resp, err)
+	//for err != nil {
+	//	p.refreshPrimaryNode()
+	//	resp, err = p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+	//		Id:   p.id,
+	//		Move: 0,
+	//	})
+	//	log.Println("player first dummy move", resp, err)
+	//	time.Sleep(time.Millisecond * 500)
+	//}
 	reader := bufio.NewScanner(os.Stdin)
-	fmt.Println(instructions)
+	//fmt.Println(instructions)
 	for reader.Scan() {
 		input := reader.Text()
 		fmt.Printf(">>>>>>player-%s: %s\n", p.id, input)
@@ -247,7 +256,6 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 				p.playerStates = resp.GetPlayerStates()
 			}
 		}
-		fmt.Println(instructions)
 	}
 }
 

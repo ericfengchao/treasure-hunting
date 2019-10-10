@@ -42,23 +42,30 @@ func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *svc) RequestCopy(context.Context, *game_pb.RequestCopyRequest) (*game_pb.RequestCopyResponse, error) {
+func (s *svc) RequestCopy(ctx context.Context, req *game_pb.RequestCopyRequest) (*game_pb.RequestCopyResponse, error) {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
-	if s.role != models.PrimaryNode {
-		return &game_pb.RequestCopyResponse{
-			Status: game_pb.RequestCopyResponse_I_AM_NOT_PRIMARY,
-		}, nil
-	}
-	if s.game != nil {
+	if s.role == models.PrimaryNode {
+		if s.game != nil {
+			return &game_pb.RequestCopyResponse{
+				Status: game_pb.RequestCopyResponse_OK,
+				Copy:   s.game.GetSerialisedGameStats(),
+			}, nil
+		} else {
+			log.Printf("player %s requested gamecopy from player %s, but game is nil", req.GetPlayerId(), s.playerId)
+			return &game_pb.RequestCopyResponse{
+				Status: game_pb.RequestCopyResponse_NULL_ERROR,
+			}, nil
+		}
+	} else if s.role == models.BackupNode {
 		return &game_pb.RequestCopyResponse{
 			Status: game_pb.RequestCopyResponse_OK,
-			Copy:   s.game.GetSerialisedGameStats(),
+			Copy:   s.gameCopy,
 		}, nil
 	} else {
 		return &game_pb.RequestCopyResponse{
-			Status: game_pb.RequestCopyResponse_NULL_ERROR,
+			Status: game_pb.RequestCopyResponse_I_AM_NOT_PRIMARY,
 		}, nil
 	}
 }
@@ -67,21 +74,17 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
-	log.Println(req)
-	//if s.role != models.BackupNode && s.playerId != s.slaveNode.GetPlayerId() {
-	//	return &game_pb.CopyResponse{
-	//		Status: game_pb.CopyResponse_I_AM_NOT_BACKUP,
-	//	}, nil
-	//}
+	log.Printf("player-%s received game copy req version %d", s.playerId, req.GetStateVersion())
 	if s.gameCopy.GetStateVersion() <= req.GetStateVersion() {
 		fmt.Printf("player-%s updating game copy from %d to %d\n", s.playerId, s.gameCopy.GetStateVersion(), req.GetStateVersion())
-		fmt.Println("current", s.gameCopy)
-		fmt.Println("new", req)
+		//fmt.Println("current", s.gameCopy)
+		//fmt.Println("new", req)
 		s.gameCopy = req
 		return &game_pb.CopyResponse{
 			Status: game_pb.CopyResponse_OK,
 		}, nil
 	} else {
+		log.Printf("received version is old! current: %d, received: %d", s.gameCopy.GetStateVersion(), req.GetStateVersion())
 		return &game_pb.CopyResponse{
 			Status: game_pb.CopyResponse_NULL_ERROR,
 		}, nil
@@ -89,6 +92,9 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 }
 
 func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_pb.MoveResponse, error) {
+	s.rwLock.Lock()
+	defer s.rwLock.Unlock()
+
 	log.Println(req)
 	// only take requests when i am a primary server node
 	// only take requests when i am a primary server node
@@ -115,7 +121,7 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 				Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
 			}, nil
 		}
-		syncResp, syncErr := s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+		syncResp, syncErr := s.slaveClient.StatusCopy(context.Background(), s.game.GetSerialisedGameStats())
 		if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
 			log.Printf("syncing with slave %s not successful: %s, %v", s.slaveNode.GetPlayerId(), syncResp.GetStatus().String(), syncErr)
 			// refresh slave
@@ -146,7 +152,7 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 
 	// real sync. if failure happens, the next request will detect
 	if len(s.registry.GetPlayerList()) > 1 && s.slaveClient != nil {
-		s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
+		fmt.Println(s.slaveClient.StatusCopy(context.Background(), s.game.GetSerialisedGameStats()))
 	}
 
 	return &game_pb.MoveResponse{
@@ -156,17 +162,17 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 }
 
 func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*game_pb.HeartbeatResponse, error) {
-	s.rwLock.RLock()
+	s.rwLock.Lock()
+	defer s.rwLock.Unlock()
 
 	// if registry changes, there might be a role change as well
 	//log.Println(fmt.Sprintf("player %s received heartbeat from %s, registry version: %d", s.playerId, req.PlayerId, req.Registry.GetVersion()))
 	if s.registry.GetVersion() < req.GetRegistry().GetVersion() {
 		s.registry = req.GetRegistry()
 		log.Println("new registry", s.registry)
-		defer s.roleSetup()
+		s.roleSetup()
 	}
 
-	defer s.rwLock.RUnlock()
 	return &game_pb.HeartbeatResponse{}, nil
 }
 
@@ -182,8 +188,8 @@ func (s *svc) deriveRole() models.Role {
 
 // derive role, if there's any role change, setup the svc based on the role
 func (s *svc) roleSetup() {
-	s.rwLock.Lock()
-	defer s.rwLock.Unlock()
+	//s.rwLock.Lock()
+	//defer s.rwLock.Unlock()
 
 	log.Println("player", s.playerId, s.registry)
 	oldRole := s.role
@@ -196,7 +202,7 @@ func (s *svc) roleSetup() {
 	switch s.role {
 	case models.BackupNode:
 		primaryNode := GetPrimaryServer(s.registry)
-		fmt.Printf("slave player-%s refreshing primary player-%s, prev : %s\n", s.playerId, primaryNode.GetPlayerId(), s.masterNode.GetPlayerId())
+		log.Printf("slave player-%s refreshing primary player-%s, prev : %s", s.playerId, primaryNode.GetPlayerId(), s.masterNode.GetPlayerId())
 		if s.masterNode.GetPlayerId() != primaryNode.GetPlayerId() {
 			s.masterNode = primaryNode
 			if s.masterConn != nil {
@@ -222,10 +228,10 @@ func (s *svc) roleSetup() {
 		// sync slave
 		if oldRole == models.BackupNode {
 			s.game = models.NewGameFromGameCopy(s.gameCopy)
-		} else {
+		} else if oldRole != models.PrimaryNode {
 			s.game = models.NewGame(s.gridSize, s.treasureAmount)
 		}
-		//s.game.CleanupPlayer(s.registry.GetPlayerList())
+		s.game.CleanupPlayer(s.registry.GetPlayerList())
 		s.gameCopy = s.game.GetSerialisedGameStats()
 		if len(s.registry.GetPlayerList()) <= 1 {
 			return
@@ -238,9 +244,9 @@ func (s *svc) roleSetup() {
 			s.slaveNode = newBackupNode
 			s.slaveConn, s.slaveClient = ConnectToPlayer(newBackupNode)
 			if s.slaveClient != nil {
-				fmt.Println("new slave first sync", s.slaveNode)
+				log.Println("new slave first sync", s.slaveNode)
 				resp, syncErr := s.slaveClient.StatusCopy(context.Background(), s.game.GetSerialisedGameStats())
-				fmt.Println(resp, syncErr)
+				log.Println(resp, syncErr)
 			}
 		}
 	}
@@ -249,12 +255,10 @@ func (s *svc) roleSetup() {
 
 func (s *svc) UpdateLocalRegistry(registry *game_pb.Registry) {
 	s.rwLock.Lock()
-
-	s.registry = registry
-	defer s.roleSetup()
-
 	s.rwLock.Unlock()
 
+	s.registry = registry
+	s.roleSetup()
 }
 
 func (s *svc) GetLocalRegistry() *game_pb.Registry {
