@@ -58,14 +58,15 @@ func (p *playerSvc) Close() {
 }
 
 func (p *playerSvc) getHeartbeatPlayers() (prev, next *game_pb.Player) {
-	if len(p.registry.GetPlayerList()) <= 1 {
+	registry := p.gameSvc.GetLocalRegistry()
+	if len(registry.GetPlayerList()) <= 1 {
 		return nil, nil
 	}
-	numOfPlayer := len(p.registry.GetPlayerList())
-	for i, node := range p.registry.GetPlayerList() {
+	numOfPlayer := len(registry.GetPlayerList())
+	for i, node := range p.gameSvc.GetLocalRegistry().GetPlayerList() {
 		if node.PlayerId == p.id {
-			next = p.registry.GetPlayerList()[(i+1)%numOfPlayer]
-			prev = p.registry.GetPlayerList()[(i-1+numOfPlayer)%numOfPlayer]
+			next = registry.GetPlayerList()[(i+1)%numOfPlayer]
+			prev = registry.GetPlayerList()[(i-1+numOfPlayer)%numOfPlayer]
 			break
 		}
 		prev = node
@@ -74,7 +75,6 @@ func (p *playerSvc) getHeartbeatPlayers() (prev, next *game_pb.Player) {
 }
 
 func (p *playerSvc) refreshHeartbeatNodes() {
-	p.registry = p.gameSvc.GetLocalRegistry()
 	prev, next := p.getHeartbeatPlayers()
 	if prev.GetPlayerId() != p.prevNode.GetPlayerId() {
 		if p.prevConn != nil {
@@ -97,17 +97,14 @@ func (p *playerSvc) refreshHeartbeatNodes() {
 }
 
 func (p *playerSvc) refreshPrimaryNode() {
-	primary := service.GetPrimaryServer(p.registry)
-	if p.gameSvc.GetLocalRegistry() != nil {
-		primary = service.GetPrimaryServer(p.gameSvc.GetLocalRegistry())
+	registry := p.gameSvc.GetLocalRegistry()
+	primary := service.GetPrimaryServer(registry)
+	if p.primaryConn != nil {
+		p.primaryConn.Close()
 	}
-	if p.gamePrimary == nil || primary.GetPlayerId() != p.gamePrimary.GetPlayerId() {
-		if p.primaryConn != nil {
-			p.primaryConn.Close()
-		}
-		p.gamePrimary = primary
-		p.primaryConn, p.gamePrimaryClient = service.ConnectToPlayer(primary)
-	}
+	p.gamePrimary = primary
+	p.primaryConn, p.gamePrimaryClient = service.ConnectToPlayer(primary)
+	fmt.Printf("master is now %s, %v, %v\n", p.gamePrimary.GetPlayerId(), p.primaryConn, p.gamePrimaryClient)
 }
 
 // contact tracker to report neighbour missing
@@ -118,15 +115,14 @@ func (p *playerSvc) reportMissingNode(ctx context.Context, playerId string) {
 		// best effort
 		return
 	}
-	p.registry = resp.GetRegistry()
-	p.gameSvc.UpdateLocalRegistry(p.registry)
+	p.gameSvc.UpdateLocalRegistry(resp.GetRegistry())
 	p.refreshPrimaryNode()
 }
 
 func (p *playerSvc) StartHeartbeat() {
 	p.wg.Add(1)
 	defer p.wg.Done()
-	t := time.NewTicker(time.Millisecond * 500)
+	t := time.NewTicker(time.Millisecond * 200)
 	ctx := context.Background()
 	for {
 		select {
@@ -135,7 +131,7 @@ func (p *playerSvc) StartHeartbeat() {
 			if p.prevNodeClient != nil {
 				_, err := p.prevNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
 					PlayerId: p.id,
-					Registry: p.registry,
+					Registry: p.gameSvc.GetLocalRegistry(),
 				})
 				if err != nil {
 					log.Printf("player %s hearting prevNode %s errored: %s", p.id, p.prevNode.PlayerId, err.Error())
@@ -146,7 +142,7 @@ func (p *playerSvc) StartHeartbeat() {
 			if p.nextNodeClient != nil {
 				_, err := p.nextNodeClient.Heartbeat(ctx, &game_pb.HeartbeatRequest{
 					PlayerId: p.id,
-					Registry: p.registry,
+					Registry: p.gameSvc.GetLocalRegistry(),
 				})
 				if err != nil {
 					log.Printf("player %s hearting nextNode %s errored: %s", p.id, p.nextNode.PlayerId, err.Error())
@@ -239,6 +235,7 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 			log.Println("receive shutting down signal")
 			return
 		case models.West, models.South, models.East, models.North:
+			p.refreshPrimaryNode()
 			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
 				Id:   p.id,
 				Move: int32(move),
