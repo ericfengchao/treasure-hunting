@@ -2,7 +2,7 @@ vet:
 	go vet ./...
 
 build-tracker:
-	go build -o ./tracker github.com/ericfengchao/treasure-hunting/cmd/tracker/
+	go build -o ./tracker github.com/ericfengchao/treasure-hunting/cmd/trackersvc/
 
 build-player:
 	go build -o ./player github.com/ericfengchao/treasure-hunting/cmd/server
