@@ -1,17 +1,15 @@
-package service
+package treasure_hunting
 
 import (
 	"errors"
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service/models"
 	"google.golang.org/grpc"
 	"log"
 	"strconv"
 	"strings"
 )
 
-func ConnectToPlayer(player *game_pb.Player) (*grpc.ClientConn, game_pb.GameServiceClient) {
+func ConnectToPlayer(player *Player) (*grpc.ClientConn, GameServiceClient) {
 	if player == nil {
 		return nil, nil
 	}
@@ -23,17 +21,17 @@ func ConnectToPlayer(player *game_pb.Player) (*grpc.ClientConn, game_pb.GameServ
 		log.Println("err connecting to player", player, err)
 		return nil, nil
 	}
-	return conn, game_pb.NewGameServiceClient(conn)
+	return conn, NewGameServiceClient(conn)
 }
 
-func GetPrimaryServer(registry *game_pb.Registry) *game_pb.Player {
+func GetPrimaryServer(registry *Registry) *Player {
 	if len(registry.GetPlayerList()) > 0 {
 		return registry.GetPlayerList()[0]
 	}
 	return nil
 }
 
-func GetBackupServer(registry *game_pb.Registry) *game_pb.Player {
+func GetBackupServer(registry *Registry) *Player {
 	if len(registry.GetPlayerList()) > 1 {
 		return registry.GetPlayerList()[1]
 	} else if len(registry.GetPlayerList()) == 1 {
@@ -44,15 +42,15 @@ func GetBackupServer(registry *game_pb.Registry) *game_pb.Player {
 
 var InvalidMoveInput = errors.New("invalid move input")
 
-func ParseDirection(input string) (models.Movement, error) {
+func ParseDirection(input string) (Movement, error) {
 	i, err := strconv.ParseInt(strings.TrimSpace(input), 10, 64)
 	if err != nil {
-		return models.Stay, err
+		return Stay, err
 	}
 	switch i {
 	case 0, 1, 2, 3, 4, 9:
-		return models.Movement(i), nil
+		return Movement(i), nil
 	default:
-		return models.Stay, InvalidMoveInput
+		return Stay, InvalidMoveInput
 	}
 }

@@ -1,8 +1,7 @@
-package models
+package treasure_hunting
 
 import (
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"math/rand"
 	"strings"
 	"time"
@@ -43,14 +42,14 @@ type grid struct {
 	emptySlots    []int
 }
 
-func (g *grid) getSerialisedGameStates() *game_pb.Grid {
-	protoSlotRows := make([]*game_pb.SlotRow, len(g.slots))
+func (g *grid) getSerialisedGameStates() *Grid {
+	protoSlotRows := make([]*SlotRow, len(g.slots))
 	for i, row := range g.slots {
-		protoSlotRows[i] = &game_pb.SlotRow{
-			Slots: make([]*game_pb.Slot, len(g.slots)),
+		protoSlotRows[i] = &SlotRow{
+			Slots: make([]*Slot, len(g.slots)),
 		}
 		for j, slot := range row {
-			protoSlotRows[i].Slots[j] = &game_pb.Slot{
+			protoSlotRows[i].Slots[j] = &Slot{
 				Treasure: slot.treasure,
 				PlayerId: slot.playerId,
 			}
@@ -70,7 +69,7 @@ func (g *grid) getSerialisedGameStates() *game_pb.Grid {
 		protoPlayerSlots[id] = int32(slot)
 	}
 
-	return &game_pb.Grid{
+	return &Grid{
 		SlotRows:      protoSlotRows,
 		EmptySlots:    protoEmptySlots,
 		TreasureSlots: protoTreasureSlots,
@@ -249,5 +248,5 @@ type gridder interface {
 	removePlayer(playerId string)
 	getSize() (int, int)
 	getRandomEmptySlot() (int, int)
-	getSerialisedGameStates() *game_pb.Grid
+	getSerialisedGameStates() *Grid
 }

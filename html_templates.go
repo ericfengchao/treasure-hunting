@@ -1,8 +1,7 @@
-package models
+package treasure_hunting
 
 import (
 	"fmt"
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
 	"strings"
 )
 
@@ -37,7 +36,7 @@ const PlayerStatesList = `
 </div>
 `
 
-const PlayerState = `
+const PlayerStateDiv = `
 	<div class="row">
 		<div>%s: %d</div>
 	</div>
@@ -115,8 +114,8 @@ const Html = `
 `
 
 type ViewableGameStats struct {
-	Grid         *game_pb.Grid
-	PlayerStates []*game_pb.PlayerState
+	Grid         *Grid
+	PlayerStates []*PlayerState
 }
 
 func (s ViewableGameStats) GetGridView() string {
@@ -139,7 +138,7 @@ func (s ViewableGameStats) GetGridView() string {
 
 	var players []string
 	for _, p := range s.PlayerStates {
-		player := &Player{
+		player := &PlayerModel{
 			id:    p.PlayerId,
 			score: int(p.Score),
 		}

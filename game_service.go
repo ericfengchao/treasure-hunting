@@ -1,4 +1,4 @@
-package service
+package treasure_hunting
 
 import (
 	"context"
@@ -7,70 +7,74 @@ import (
 	"log"
 	"net/http"
 	"sync"
-
-	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"github.com/ericfengchao/treasure-hunting/service/models"
 )
 
+type GameService interface {
+	GameServiceServer
+	http.Handler
+	GetLocalRegistry() *Registry
+	UpdateLocalRegistry(*Registry)
+}
+
 type svc struct {
-	role           models.Role
+	role           Role
 	playerId       string
-	registry       *game_pb.Registry
+	registry       *Registry
 	gridSize       int
 	treasureAmount int
 
 	rwLock *sync.RWMutex
 
-	game     models.Gamer
-	gameCopy *game_pb.CopyRequest
+	game     Gamer
+	gameCopy *CopyRequest
 
 	masterConn   *grpc.ClientConn
-	masterNode   *game_pb.Player
-	masterClient game_pb.GameServiceClient
+	masterNode   *Player
+	masterClient GameServiceClient
 
 	slaveConn   *grpc.ClientConn
-	slaveNode   *game_pb.Player
-	slaveClient game_pb.GameServiceClient
+	slaveNode   *Player
+	slaveClient GameServiceClient
 }
 
 func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if s.role == models.PrimaryNode {
+	if s.role == PrimaryNode {
 		fmt.Fprint(w, s.game.GetGridView())
-	} else if s.role == models.BackupNode {
-		backupView := &models.ViewableGameStats{Grid: s.gameCopy.GetGrid()}
+	} else if s.role == BackupNode {
+		backupView := &ViewableGameStats{Grid: s.gameCopy.GetGrid()}
 		fmt.Fprint(w, backupView.GetGridView())
 	}
 }
 
-func (s *svc) RequestCopy(ctx context.Context, req *game_pb.RequestCopyRequest) (*game_pb.RequestCopyResponse, error) {
+func (s *svc) RequestCopy(ctx context.Context, req *RequestCopyRequest) (*RequestCopyResponse, error) {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
-	if s.role == models.PrimaryNode {
+	if s.role == PrimaryNode {
 		if s.game != nil {
-			return &game_pb.RequestCopyResponse{
-				Status: game_pb.RequestCopyResponse_OK,
+			return &RequestCopyResponse{
+				Status: RequestCopyResponse_OK,
 				Copy:   s.game.GetSerialisedGameStats(),
 			}, nil
 		} else {
 			log.Printf("player %s requested gamecopy from player %s, but game is nil", req.GetPlayerId(), s.playerId)
-			return &game_pb.RequestCopyResponse{
-				Status: game_pb.RequestCopyResponse_NULL_ERROR,
+			return &RequestCopyResponse{
+				Status: RequestCopyResponse_NULL_ERROR,
 			}, nil
 		}
-	} else if s.role == models.BackupNode {
-		return &game_pb.RequestCopyResponse{
-			Status: game_pb.RequestCopyResponse_OK,
+	} else if s.role == BackupNode {
+		return &RequestCopyResponse{
+			Status: RequestCopyResponse_OK,
 			Copy:   s.gameCopy,
 		}, nil
 	} else {
-		return &game_pb.RequestCopyResponse{
-			Status: game_pb.RequestCopyResponse_I_AM_NOT_PRIMARY,
+		return &RequestCopyResponse{
+			Status: RequestCopyResponse_I_AM_NOT_PRIMARY,
 		}, nil
 	}
 }
 
-func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_pb.CopyResponse, error) {
+func (s *svc) StatusCopy(ctx context.Context, req *CopyRequest) (*CopyResponse, error) {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
@@ -80,31 +84,31 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 		//fmt.Println("current", s.gameCopy)
 		//fmt.Println("new", req)
 		s.gameCopy = req
-		return &game_pb.CopyResponse{
-			Status: game_pb.CopyResponse_OK,
+		return &CopyResponse{
+			Status: CopyResponse_OK,
 		}, nil
 	} else {
 		log.Printf("received version is old! current: %d, received: %d", s.gameCopy.GetStateVersion(), req.GetStateVersion())
-		return &game_pb.CopyResponse{
-			Status: game_pb.CopyResponse_NULL_ERROR,
+		return &CopyResponse{
+			Status: CopyResponse_NULL_ERROR,
 		}, nil
 	}
 }
 
-func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_pb.MoveResponse, error) {
+func (s *svc) MovePlayer(ctx context.Context, req *MoveRequest) (*MoveResponse, error) {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
 	log.Println(req)
 	// only take requests when i am a primary server node
 	// only take requests when i am a primary server node
-	if s.role == models.BackupNode {
-		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_I_AM_ONLY_BACKUP,
+	if s.role == BackupNode {
+		return &MoveResponse{
+			Status: MoveResponse_I_AM_ONLY_BACKUP,
 		}, nil
-	} else if s.role == models.PlayerNode {
-		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_I_AM_NOT_A_SERVER,
+	} else if s.role == PlayerNode {
+		return &MoveResponse{
+			Status: MoveResponse_I_AM_NOT_A_SERVER,
 		}, nil
 	}
 
@@ -117,33 +121,33 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 	if len(s.registry.GetPlayerList()) > 1 {
 		if s.slaveClient == nil {
 			s.roleSetup()
-			return &game_pb.MoveResponse{
-				Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+			return &MoveResponse{
+				Status: MoveResponse_SLAVE_INIT_IN_PROGRESS,
 			}, nil
 		}
 		syncResp, syncErr := s.slaveClient.StatusCopy(context.Background(), s.game.GetSerialisedGameStats())
-		if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
+		if syncErr != nil || syncResp.GetStatus() != CopyResponse_OK {
 			log.Printf("syncing with slave %s not successful: %s, %v", s.slaveNode.GetPlayerId(), syncResp.GetStatus().String(), syncErr)
 			// refresh slave
 			s.roleSetup()
-			return &game_pb.MoveResponse{
-				Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+			return &MoveResponse{
+				Status: MoveResponse_SLAVE_INIT_IN_PROGRESS,
 			}, nil
 		}
 	}
 
-	err := s.game.MovePlayer(req.GetId(), models.Movement(int(req.GetMove())))
-	if err == models.InvalidCoordinates {
-		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_INVALID_INPUT,
+	err := s.game.MovePlayer(req.GetId(), Movement(int(req.GetMove())))
+	if err == InvalidCoordinates {
+		return &MoveResponse{
+			Status: MoveResponse_INVALID_INPUT,
 		}, nil
-	} else if err == models.PlaceAlreadyTaken {
-		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_SLOT_TAKEN,
+	} else if err == PlaceAlreadyTaken {
+		return &MoveResponse{
+			Status: MoveResponse_SLOT_TAKEN,
 		}, nil
-	} else if err == models.SlaveIsDown {
-		return &game_pb.MoveResponse{
-			Status: game_pb.MoveResponse_SLAVE_INIT_IN_PROGRESS,
+	} else if err == SlaveIsDown {
+		return &MoveResponse{
+			Status: MoveResponse_SLAVE_INIT_IN_PROGRESS,
 		}, nil
 	} else if err != nil {
 		// unknown error occurred. e.g. io timeout. caller should retry
@@ -155,13 +159,13 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 		fmt.Println(s.slaveClient.StatusCopy(context.Background(), s.game.GetSerialisedGameStats()))
 	}
 
-	return &game_pb.MoveResponse{
+	return &MoveResponse{
 		PlayerStates: s.game.GetGameStates(),
-		Status:       game_pb.MoveResponse_OK,
+		Status:       MoveResponse_OK,
 	}, nil
 }
 
-func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*game_pb.HeartbeatResponse, error) {
+func (s *svc) Heartbeat(ctx context.Context, req *HeartbeatRequest) (*HeartbeatResponse, error) {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
@@ -173,16 +177,16 @@ func (s *svc) Heartbeat(ctx context.Context, req *game_pb.HeartbeatRequest) (*ga
 		s.roleSetup()
 	}
 
-	return &game_pb.HeartbeatResponse{}, nil
+	return &HeartbeatResponse{}, nil
 }
 
-func (s *svc) deriveRole() models.Role {
+func (s *svc) deriveRole() Role {
 	if GetPrimaryServer(s.registry).GetPlayerId() == s.playerId {
-		return models.PrimaryNode
+		return PrimaryNode
 	} else if GetBackupServer(s.registry).GetPlayerId() == s.playerId {
-		return models.BackupNode
+		return BackupNode
 	} else {
-		return models.PlayerNode
+		return PlayerNode
 	}
 }
 
@@ -200,7 +204,7 @@ func (s *svc) roleSetup() {
 	}
 
 	switch s.role {
-	case models.BackupNode:
+	case BackupNode:
 		primaryNode := GetPrimaryServer(s.registry)
 		log.Printf("slave player-%s refreshing primary player-%s, prev : %s", s.playerId, primaryNode.GetPlayerId(), s.masterNode.GetPlayerId())
 		if s.masterNode.GetPlayerId() != primaryNode.GetPlayerId() {
@@ -211,7 +215,7 @@ func (s *svc) roleSetup() {
 			s.masterConn, s.masterClient = ConnectToPlayer(primaryNode)
 			if s.masterClient != nil {
 				fmt.Printf("player %s requesting game copy from master %s\n", s.playerId, s.masterNode.GetPlayerId())
-				resp, copyErr := s.masterClient.RequestCopy(context.Background(), &game_pb.RequestCopyRequest{
+				resp, copyErr := s.masterClient.RequestCopy(context.Background(), &RequestCopyRequest{
 					PlayerId: s.playerId,
 				})
 				if copyErr != nil {
@@ -224,12 +228,12 @@ func (s *svc) roleSetup() {
 				}
 			}
 		}
-	case models.PrimaryNode:
+	case PrimaryNode:
 		// sync slave
-		if oldRole == models.BackupNode {
-			s.game = models.NewGameFromGameCopy(s.gameCopy)
-		} else if oldRole != models.PrimaryNode {
-			s.game = models.NewGame(s.gridSize, s.treasureAmount)
+		if oldRole == BackupNode {
+			s.game = NewGameFromGameCopy(s.gameCopy)
+		} else if oldRole != PrimaryNode {
+			s.game = NewGame(s.gridSize, s.treasureAmount)
 		}
 		s.game.CleanupPlayer(s.registry.GetPlayerList())
 		s.gameCopy = s.game.GetSerialisedGameStats()
@@ -253,7 +257,7 @@ func (s *svc) roleSetup() {
 	return
 }
 
-func (s *svc) UpdateLocalRegistry(registry *game_pb.Registry) {
+func (s *svc) UpdateLocalRegistry(registry *Registry) {
 	s.rwLock.Lock()
 	s.rwLock.Unlock()
 
@@ -261,14 +265,14 @@ func (s *svc) UpdateLocalRegistry(registry *game_pb.Registry) {
 	s.roleSetup()
 }
 
-func (s *svc) GetLocalRegistry() *game_pb.Registry {
+func (s *svc) GetLocalRegistry() *Registry {
 	s.rwLock.Lock()
 	defer s.rwLock.Unlock()
 
 	return s.registry
 }
 
-func NewGameSvc(playerId string, gridSize int, treasureAmount int, registry *game_pb.Registry) GameService {
+func NewGameSvc(playerId string, gridSize int, treasureAmount int, registry *Registry) GameService {
 	s := &svc{
 		playerId:       playerId,
 		registry:       registry,
