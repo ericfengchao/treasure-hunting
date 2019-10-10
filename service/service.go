@@ -13,9 +13,11 @@ import (
 )
 
 type svc struct {
-	role     models.Role
-	playerId string
-	registry *game_pb.Registry
+	role           models.Role
+	playerId       string
+	registry       *game_pb.Registry
+	gridSize       int
+	treasureAmount int
 
 	rwLock *sync.RWMutex
 
@@ -49,10 +51,16 @@ func (s *svc) RequestCopy(context.Context, *game_pb.RequestCopyRequest) (*game_p
 			Status: game_pb.RequestCopyResponse_I_AM_NOT_PRIMARY,
 		}, nil
 	}
-	return &game_pb.RequestCopyResponse{
-		Status: game_pb.RequestCopyResponse_OK,
-		Copy:   s.game.GetSerialisedGameStats(),
-	}, nil
+	if s.game != nil {
+		return &game_pb.RequestCopyResponse{
+			Status: game_pb.RequestCopyResponse_OK,
+			Copy:   s.game.GetSerialisedGameStats(),
+		}, nil
+	} else {
+		return &game_pb.RequestCopyResponse{
+			Status: game_pb.RequestCopyResponse_NULL_ERROR,
+		}, nil
+	}
 }
 
 func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_pb.CopyResponse, error) {
@@ -66,7 +74,7 @@ func (s *svc) StatusCopy(ctx context.Context, req *game_pb.CopyRequest) (*game_p
 	//	}, nil
 	//}
 	if s.gameCopy.GetStateVersion() <= req.GetStateVersion() {
-		fmt.Printf("player-%s updating game copy from %d to %d", s.playerId, s.gameCopy.GetStateVersion(), req.GetStateVersion())
+		fmt.Printf("player-%s updating game copy from %d to %d\n", s.playerId, s.gameCopy.GetStateVersion(), req.GetStateVersion())
 		fmt.Println("current", s.gameCopy)
 		fmt.Println("new", req)
 		s.gameCopy = req
@@ -109,7 +117,7 @@ func (s *svc) MovePlayer(ctx context.Context, req *game_pb.MoveRequest) (*game_p
 		}
 		syncResp, syncErr := s.slaveClient.StatusCopy(ctx, s.game.GetSerialisedGameStats())
 		if syncErr != nil || syncResp.GetStatus() != game_pb.CopyResponse_OK {
-			log.Printf("syncing with slave not successful: %s, %v", syncResp.GetStatus().String(), syncErr)
+			log.Printf("syncing with slave %s not successful: %s, %v", s.slaveNode.GetPlayerId(), syncResp.GetStatus().String(), syncErr)
 			// refresh slave
 			s.roleSetup()
 			return &game_pb.MoveResponse{
@@ -214,11 +222,11 @@ func (s *svc) roleSetup() {
 		// sync slave
 		if oldRole == models.BackupNode {
 			s.game = models.NewGameFromGameCopy(s.gameCopy)
+		} else {
+			s.game = models.NewGame(s.gridSize, s.treasureAmount)
 		}
-		// sync playerList
-		if s.game != nil {
-			s.game.CleanupPlayer(s.registry.GetPlayerList())
-		}
+		//s.game.CleanupPlayer(s.registry.GetPlayerList())
+		s.gameCopy = s.game.GetSerialisedGameStats()
 		if len(s.registry.GetPlayerList()) <= 1 {
 			return
 		}
@@ -250,21 +258,20 @@ func (s *svc) UpdateLocalRegistry(registry *game_pb.Registry) {
 }
 
 func (s *svc) GetLocalRegistry() *game_pb.Registry {
-	//s.rwLock.RLock()
-	//defer s.rwLock.Unlock()
+	s.rwLock.Lock()
+	defer s.rwLock.Unlock()
 
 	return s.registry
 }
 
 func NewGameSvc(playerId string, gridSize int, treasureAmount int, registry *game_pb.Registry) GameService {
 	s := &svc{
-		playerId: playerId,
-		registry: registry,
-		rwLock:   &sync.RWMutex{},
+		playerId:       playerId,
+		registry:       registry,
+		gridSize:       gridSize,
+		treasureAmount: treasureAmount,
+		rwLock:         &sync.RWMutex{},
 	}
 	s.roleSetup()
-	if s.role == models.PrimaryNode {
-		s.game = models.NewGame(gridSize, treasureAmount)
-	}
 	return s
 }
