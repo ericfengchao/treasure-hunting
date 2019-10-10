@@ -25,6 +25,9 @@ type server struct {
 }
 
 func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tracker.RegisterResponse, error) {
+	s.RWLock.Lock()
+	defer s.RWLock.Unlock()
+
 	if s.Registered(in.PlayerId) {
 		return &tracker.RegisterResponse{
 			Status: tracker.RegisterResponse_REGISTERED,
@@ -51,21 +54,23 @@ func (s *server) Register(ctx context.Context, in *tracker.RegisterRequest) (*tr
 		K:            s.K,
 		AssignedPort: s.StartPort - 2,
 	}
-	fmt.Println("Player: " + in.PlayerId + " registered")
+	log.Println("Player: " + in.PlayerId + " registered")
+	fmt.Println("TOP player", s.PlayerList[0].PlayerId, s.PlayerList[0].Port)
+	fmt.Println("full list", s.PlayerList)
+	fmt.Println("============")
 	return res, nil
 
 }
 
 func (s *server) AppendPlayer(player *tracker.Player) {
-	s.RWLock.Lock()
-	defer s.RWLock.Unlock()
-
 	s.PlayerList = append(s.PlayerList, player)
 	s.StartPort += 2 //
 	s.Version++
 }
 
 func (s *server) ReportMissing(ctx context.Context, in *tracker.Missing) (*tracker.MissingResponse, error) {
+	s.RWLock.Lock()
+	defer s.RWLock.Unlock()
 
 	if !s.Exist(in.PlayerId) {
 		return &tracker.MissingResponse{
@@ -78,8 +83,14 @@ func (s *server) ReportMissing(ctx context.Context, in *tracker.Missing) (*track
 	}
 
 	s.Delete(in.PlayerId)
-	fmt.Println("Delete: " + in.PlayerId)
-
+	log.Println("Delete: " + in.PlayerId)
+	if len(s.PlayerList) > 0 {
+		fmt.Println("TOP player", s.PlayerList[0].PlayerId, s.PlayerList[0].Port)
+		fmt.Println("full list", s.PlayerList)
+	} else {
+		fmt.Println("NO MORE PLAYERS")
+	}
+	fmt.Println("============")
 	return &tracker.MissingResponse{
 		Status: tracker.MissingResponse_OK,
 		Registry: &tracker.Registry{
@@ -90,8 +101,6 @@ func (s *server) ReportMissing(ctx context.Context, in *tracker.Missing) (*track
 }
 
 func (s *server) Delete(playerId string) {
-	s.RWLock.Lock()
-	defer s.RWLock.Unlock()
 	for k, v := range s.PlayerList {
 		if v.PlayerId == playerId {
 			s.PlayerList = append(s.PlayerList[:k], s.PlayerList[k+1:]...)
@@ -101,8 +110,6 @@ func (s *server) Delete(playerId string) {
 } // not include RWLock, but needed
 
 func (s *server) Registered(playerId string) bool {
-	s.RWLock.RLock()
-	defer s.RWLock.RUnlock()
 	for _, v := range s.PlayerList {
 		if v.PlayerId == playerId {
 			fmt.Println("Player " + playerId + " has registered already")
@@ -113,8 +120,6 @@ func (s *server) Registered(playerId string) bool {
 }
 
 func (s *server) Exist(playerId string) bool {
-	s.RWLock.RLock()
-	defer s.RWLock.RUnlock()
 	for _, v := range s.PlayerList {
 		if v.PlayerId == playerId {
 			return true

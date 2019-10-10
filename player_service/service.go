@@ -92,10 +92,15 @@ func (p *playerSvc) refreshHeartbeatNodes() {
 		p.nextNode = next
 		p.nextConn, p.nextNodeClient = service.ConnectToPlayer(next)
 	}
+	//fmt.Println("heatbeating nodes prev:", p.prevNode)
+	//fmt.Println("heatbeating nodes next:", p.nextNode)
 }
 
 func (p *playerSvc) refreshPrimaryNode() {
 	primary := service.GetPrimaryServer(p.registry)
+	if p.gameSvc.GetLocalRegistry() != nil {
+		primary = service.GetPrimaryServer(p.gameSvc.GetLocalRegistry())
+	}
 	if p.gamePrimary == nil || primary.GetPlayerId() != p.gamePrimary.GetPlayerId() {
 		if p.primaryConn != nil {
 			p.primaryConn.Close()
@@ -207,12 +212,20 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 	defer func() {
 		closing <- struct{}{}
 	}()
+	time.Sleep(time.Millisecond * 500)
 	ctx := context.Background()
 	p.refreshPrimaryNode()
+	// dummy move to get initial states
+	resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
+		Id:   p.id,
+		Move: 0,
+	})
+	fmt.Println(resp, err)
 	reader := bufio.NewScanner(os.Stdin)
 	fmt.Println(instructions)
 	for reader.Scan() {
 		input := reader.Text()
+		fmt.Printf(">>>>>>player-%s: %s\n", p.id, input)
 		move, err := service.ParseDirection(input)
 		if err != nil {
 			log.Printf("fail to parse the input, err: %s", err.Error())

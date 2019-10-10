@@ -12,8 +12,8 @@ const rowTemplate = `
 </div>
 `
 const treasureTemplate = `
-	<div class="column treasure">
-    	<p class="cell">*</p>
+	<div class="column" style="background-color:#aaa; border-style: solid; border-color: coral;">
+    	<p>⭐️</p>
   	</div>
 `
 
@@ -56,12 +56,12 @@ const Html = `
 
 .left {
   float: left;
-  width: 50%%;
+  width: 25%%;
 }
 
 .right {
   float: right;
-  width: 50%%;
+  width: 70%%;
 }
 
 .treasure {
@@ -75,8 +75,8 @@ const Html = `
 /* Create two equal columns that floats next to each other */
 .column {
   float: left;
-  width: 100px;
-  height: 100px;
+  width: 50px;
+  height: 50px;
   padding: 1px;
   border-style: solid; 
   border-color: coral; 

@@ -56,23 +56,22 @@ func (g *game) MovePlayer(playerId string, move Movement) error {
 	g.rwLock.Lock()
 	defer g.rwLock.Unlock()
 
-	// move is received from the endpoint, need listening to the keyboard
-	var moveRow, moveCol int
-	switch move {
-	case Stay:
-		return nil
-	case West:
-		moveRow, moveCol = 0, -1
-	case South:
-		moveRow, moveCol = 1, 0
-	case East:
-		moveRow, moveCol = 0, 1
-	case North:
-		moveRow, moveCol = -1, 0
-	}
-
 	// update player
 	if p, ok := g.playerList[playerId]; ok {
+		// move is received from the endpoint, need listening to the keyboard
+		var moveRow, moveCol int
+		switch move {
+		case Stay:
+			return nil
+		case West:
+			moveRow, moveCol = 0, -1
+		case South:
+			moveRow, moveCol = 1, 0
+		case East:
+			moveRow, moveCol = 0, 1
+		case North:
+			moveRow, moveCol = -1, 0
+		}
 		newRow := p.currentRow + moveRow
 		newCol := p.currentCol + moveCol
 		return g.placePlayer(playerId, newRow, newCol)
@@ -150,6 +149,7 @@ func (g *game) getPlayerStatesListHtml() string {
 }
 
 func NewGameFromGameCopy(copy *game_pb.CopyRequest) Gamer {
+	fmt.Println("recover from game copy", copy)
 	gridCopy := copy.GetGrid()
 	originSlot := make([][]*slot, len(gridCopy.GetSlotRows()))
 	for i, row := range gridCopy.GetSlotRows() {
