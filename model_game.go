@@ -133,10 +133,10 @@ func (g *game) GetGameStates() []*PlayerState {
 	return playersSerialised
 }
 
-func (g *game) GetGridView() string {
+func (g *game) GetGridView(playerId string) string {
 	gridView := g.grid.toGridView()
 	playerStates := g.getPlayerStatesListHtml()
-	return fmt.Sprintf(Html, playerStates, gridView)
+	return fmt.Sprintf(Html, playerId, playerStates, gridView)
 }
 
 func (g *game) getPlayerStatesListHtml() string {

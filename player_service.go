@@ -245,7 +245,7 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 			p.Close()
 			log.Println("receive shutting down signal")
 			return
-		case West, South, East, North:
+		case West, South, East, North, Stay:
 			p.refreshPrimaryNode()
 			resp, err := p.gamePrimaryClient.MovePlayer(ctx, &MoveRequest{
 				Id:   p.id,
@@ -255,7 +255,8 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 				log.Println(err)
 			} else {
 				log.Println(fmt.Sprintf("player-%s move %d done", p.id, move), resp.Status.String())
-				p.playerStates = resp.GetPlayerStates()
+				log.Println(resp.GetPlayerStates())
+				p.gameSvc.SyncPlayerStates(resp)
 			}
 		}
 	}
@@ -292,7 +293,7 @@ func (p *playerSvc) Start(closing chan<- struct{}) {
 				log.Println(err)
 			} else {
 				log.Println(fmt.Sprintf("player-%s move-%d", p.id, move), resp.Status.String())
-				p.playerStates = resp.GetPlayerStates()
+				p.gameSvc.SyncPlayerStates(resp)
 			}
 			i++
 		}

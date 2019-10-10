@@ -34,6 +34,16 @@ func (s *slot) placeTreasure() {
 	s.treasure = true
 }
 
+func (s *slot) getSlotView() string {
+	slotHtml := emptySlotTemplate
+	if s.treasure {
+		slotHtml = treasureTemplate
+	} else if s.playerId != "" {
+		slotHtml = fmt.Sprintf(PlayerTemplate, s.playerId)
+	}
+	return slotHtml
+}
+
 type grid struct {
 	slots [][]*slot
 

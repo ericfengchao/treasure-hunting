@@ -12,7 +12,7 @@ const rowTemplate = `
 `
 const treasureTemplate = `
 	<div class="column" style="background-color:#aaa; border-style: solid; border-color: coral;">
-    	<p>⭐️</p>
+    	<p>*</p>
   	</div>
 `
 
@@ -46,6 +46,7 @@ const Html = `
 <!DOCTYPE html>
 <html>
 <head>
+<title>%s</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
 * {
@@ -113,12 +114,12 @@ const Html = `
 </html>
 `
 
-type ViewableGameStats struct {
-	Grid         *Grid
-	PlayerStates []*PlayerState
+type BackupViewGameStates struct {
+	PlayerStatesView
+	Grid *Grid
 }
 
-func (s ViewableGameStats) GetGridView() string {
+func (s BackupViewGameStates) GetViews() string {
 	var allRows []string
 	for _, row := range s.Grid.GetSlotRows() {
 		var items []string
@@ -136,15 +137,67 @@ func (s ViewableGameStats) GetGridView() string {
 	}
 	gridView := strings.Join(allRows, "")
 
-	var players []string
-	for _, p := range s.PlayerStates {
-		player := &PlayerModel{
-			id:    p.PlayerId,
-			score: int(p.Score),
-		}
-		players = append(players, player.getPlayerStateHtml())
-	}
-	playerStates := fmt.Sprintf(PlayerStatesList, strings.Join(players, ""))
+	playerStates := s.getPlayerListView()
 
-	return fmt.Sprintf(Html, playerStates, gridView)
+	return fmt.Sprintf(Html, s.SelfId, playerStates, gridView)
+}
+
+type PlayerStatesView struct {
+	SelfId       string
+	MasterId     string
+	SlaveId      string
+	PlayerStates []*PlayerState
+}
+
+func (p PlayerStatesView) getPlayerListView() string {
+	var playerLists []string
+	for _, ps := range p.PlayerStates {
+		pid := ps.PlayerId
+		if pid == p.MasterId {
+			pid = "(Primary)" + pid
+		} else if pid == p.SlaveId {
+			pid = "(Backup)" + pid
+		}
+		playerM := &PlayerModel{
+			id:    pid,
+			score: int(ps.Score),
+		}
+		playerLists = append(playerLists, playerM.getPlayerStateHtml())
+	}
+	playersHtml := fmt.Sprintf(PlayerStatesList, strings.Join(playerLists, ""))
+	return playersHtml
+}
+
+type PlayerModeViewGameStates struct {
+	gridSize int
+	PlayerStatesView
+}
+
+func (p PlayerModeViewGameStates) GetViews() string {
+	slots := make([][]*slot, p.gridSize)
+	for i := range slots {
+		slots[i] = make([]*slot, p.gridSize)
+		for j := range slots[i] {
+			slots[i][j] = new(slot)
+		}
+	}
+	for _, ps := range p.PlayerStates {
+		slots[int(ps.CurrentPosition.Row)][int(ps.CurrentPosition.Col)].placePlayer(ps.PlayerId)
+	}
+
+	playersHtml := p.getPlayerListView()
+
+	var allRowHtmls []string
+	for _, row := range slots {
+		var rowItems []string
+		for _, s := range row {
+			rowItems = append(rowItems, s.getSlotView())
+		}
+		rowHtml := fmt.Sprintf(rowTemplate, strings.Join(rowItems, ""))
+		allRowHtmls = append(allRowHtmls, rowHtml)
+	}
+	gridView := strings.Join(allRowHtmls, "")
+
+	return fmt.Sprintf(Html, p.SelfId, playersHtml, gridView)
+
 }

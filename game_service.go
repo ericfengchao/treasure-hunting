@@ -13,6 +13,7 @@ type GameService interface {
 	GameServiceServer
 	http.Handler
 	GetLocalRegistry() *Registry
+	SyncPlayerStates(resp *MoveResponse)
 	UpdateLocalRegistry(*Registry)
 }
 
@@ -22,6 +23,8 @@ type svc struct {
 	registry       *Registry
 	gridSize       int
 	treasureAmount int
+
+	playerStatesFromServer []*PlayerState
 
 	rwLock *sync.RWMutex
 
@@ -37,12 +40,43 @@ type svc struct {
 	slaveClient GameServiceClient
 }
 
+func (s *svc) SyncPlayerStates(resp *MoveResponse) {
+	s.rwLock.Lock()
+	defer s.rwLock.Unlock()
+
+	s.playerStatesFromServer = resp.GetPlayerStates()
+	return
+}
+
 func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	primaryNode := GetPrimaryServer(s.registry)
+	backupNode := GetBackupServer(s.registry)
+	gameViewComponents := PlayerStatesView{
+		SelfId:   s.playerId,
+		MasterId: primaryNode.GetPlayerId(),
+		SlaveId:  backupNode.GetPlayerId(),
+	}
 	if s.role == PrimaryNode {
-		fmt.Fprint(w, s.game.GetGridView())
+		gameViewComponents.PlayerStates = s.game.GetSerialisedGameStats().GetPlayerStates()
+		masterView := &BackupViewGameStates{
+			PlayerStatesView: gameViewComponents,
+			Grid:             s.game.GetSerialisedGameStats().GetGrid(),
+		}
+		fmt.Fprint(w, masterView.GetViews())
 	} else if s.role == BackupNode {
-		backupView := &ViewableGameStats{Grid: s.gameCopy.GetGrid()}
-		fmt.Fprint(w, backupView.GetGridView())
+		gameViewComponents.PlayerStates = s.gameCopy.GetPlayerStates()
+		backupView := &BackupViewGameStates{
+			PlayerStatesView: gameViewComponents,
+			Grid:             s.gameCopy.GetGrid(),
+		}
+		fmt.Fprint(w, backupView.GetViews())
+	} else if s.role == PlayerNode {
+		gameViewComponents.PlayerStates = s.playerStatesFromServer
+		ps := PlayerModeViewGameStates{
+			gridSize:         s.gridSize,
+			PlayerStatesView: gameViewComponents,
+		}
+		fmt.Fprint(w, ps.GetViews())
 	}
 }
 
@@ -137,17 +171,21 @@ func (s *svc) MovePlayer(ctx context.Context, req *MoveRequest) (*MoveResponse, 
 	}
 
 	err := s.game.MovePlayer(req.GetId(), Movement(int(req.GetMove())))
+	gs := s.game.GetGameStates()
 	if err == InvalidCoordinates {
 		return &MoveResponse{
-			Status: MoveResponse_INVALID_INPUT,
+			Status:       MoveResponse_INVALID_INPUT,
+			PlayerStates: gs,
 		}, nil
 	} else if err == PlaceAlreadyTaken {
 		return &MoveResponse{
-			Status: MoveResponse_SLOT_TAKEN,
+			Status:       MoveResponse_SLOT_TAKEN,
+			PlayerStates: gs,
 		}, nil
 	} else if err == SlaveIsDown {
 		return &MoveResponse{
-			Status: MoveResponse_SLAVE_INIT_IN_PROGRESS,
+			Status:       MoveResponse_SLAVE_INIT_IN_PROGRESS,
+			PlayerStates: gs,
 		}, nil
 	} else if err != nil {
 		// unknown error occurred. e.g. io timeout. caller should retry
@@ -160,7 +198,7 @@ func (s *svc) MovePlayer(ctx context.Context, req *MoveRequest) (*MoveResponse, 
 	}
 
 	return &MoveResponse{
-		PlayerStates: s.game.GetGameStates(),
+		PlayerStates: gs,
 		Status:       MoveResponse_OK,
 	}, nil
 }

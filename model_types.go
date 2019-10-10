@@ -8,7 +8,7 @@ import (
 type Gamer interface {
 	// read
 	GetGameStates() []*PlayerState
-	GetGridView() string
+	GetGridView(playerId string) string
 	GetSerialisedGameStats() *CopyRequest
 
 	// write
