@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	game_pb "github.com/ericfengchao/treasure-hunting/protos"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -140,11 +139,11 @@ func (g *grid) placePlayer(playerId string, row, col int) bool {
 		g.slots[newTreasureRow][newTreasureCol].placeTreasure()
 	}
 
-	log.Println("============DEBUG==========")
-	log.Println(g.treasureSlots)
-	log.Println(g.playerSlots)
-	log.Println(g.emptySlots)
-	log.Println("============DEBUG==========")
+	//log.Println("============DEBUG==========")
+	//log.Println(g.treasureSlots)
+	//log.Println(g.playerSlots)
+	//log.Println(g.emptySlots)
+	//log.Println("============DEBUG==========")
 
 	return huntedTreasure
 }

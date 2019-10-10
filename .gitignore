@@ -2,3 +2,6 @@
 .DS_Store
 tracker
 player
+*.java
+*.class
+CS5223_StressTest12123/*

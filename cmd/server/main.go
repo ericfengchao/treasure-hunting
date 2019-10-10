@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/ericfengchao/treasure-hunting/player_service"
 	"log"
 	"os"
-
-	"github.com/ericfengchao/treasure-hunting/player_service"
+	"time"
 )
 
 var gridSize = 3
@@ -24,7 +24,7 @@ func main() {
 	//KeyboardListen
 	// playerSvc.Initialize()
 	go playerSvc.StartServing()
-
+	time.Sleep(100 * time.Millisecond)
 	closing := make(chan struct{}, 0)
 	//go playerSvc.Start(closing)
 	go playerSvc.KeyboardListen(closing)

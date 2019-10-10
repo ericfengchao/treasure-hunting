@@ -6,6 +6,8 @@ import "tracker.proto";
 service GameService {
     rpc StatusCopy (CopyRequest) returns (CopyResponse) {}
 
+    rpc RequestCopy (RequestCopyRequest) returns (RequestCopyResponse) {}
+
     rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse) {}
 
     rpc MovePlayer (MoveRequest) returns (MoveResponse) {}
@@ -31,6 +33,21 @@ message Grid {
     repeated int32 treasure_slots = 2; // positions of treasure hiding slots
     map<string, int32> player_slots = 3;
     repeated int32 empty_slots = 4;
+}
+
+message RequestCopyRequest {
+    string player_id = 1;
+}
+
+message RequestCopyResponse {
+    enum Status {
+        UNKNOWN = 0;
+        OK = 1; // status updated
+        I_AM_NOT_PRIMARY = 2; // cannot update self status
+        NULL_ERROR = 3; // received null object
+    }
+    Status status = 1;
+    CopyRequest copy = 2;
 }
 
 message CopyRequest {
