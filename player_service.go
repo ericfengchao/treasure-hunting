@@ -106,7 +106,7 @@ func (p *playerSvc) refreshPrimaryNode() {
 	}
 	p.gamePrimary = primary
 	p.primaryConn, p.gamePrimaryClient = ConnectToPlayer(primary)
-	fmt.Printf("master is now %s, %v, %v\n", p.gamePrimary.GetPlayerId(), p.primaryConn, p.gamePrimaryClient)
+	fmt.Println("master is now", p.gamePrimary.GetPlayerId(), p.primaryConn, p.gamePrimaryClient)
 }
 
 // contact tracker to report neighbour missing
@@ -212,22 +212,23 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 		closing <- struct{}{}
 	}()
 	ctx := context.Background()
-	//p.refreshPrimaryNode()
-	//// dummy move to get initial states
-	//resp, err := p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
-	//	Id:   p.id,
-	//	Move: 0,
-	//})
-	//log.Println("player first dummy move", resp, err)
-	//for err != nil {
-	//	p.refreshPrimaryNode()
-	//	resp, err = p.gamePrimaryClient.MovePlayer(ctx, &game_pb.MoveRequest{
-	//		Id:   p.id,
-	//		Move: 0,
-	//	})
-	//	log.Println("player first dummy move", resp, err)
-	//	time.Sleep(time.Millisecond * 500)
-	//}
+	time.Sleep(time.Second * 1)
+	p.refreshPrimaryNode()
+	// dummy move to get initial states
+	resp, err := p.gamePrimaryClient.MovePlayer(ctx, &MoveRequest{
+		Id:   p.id,
+		Move: 0,
+	})
+	log.Println("player first dummy move", resp, err)
+	for err != nil {
+		p.refreshPrimaryNode()
+		resp, err = p.gamePrimaryClient.MovePlayer(ctx, &MoveRequest{
+			Id:   p.id,
+			Move: 0,
+		})
+		log.Println("player first dummy move", resp, err)
+		time.Sleep(time.Millisecond * 500)
+	}
 	reader := bufio.NewScanner(os.Stdin)
 	//fmt.Println(instructions)
 	for reader.Scan() {
