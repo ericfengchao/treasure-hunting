@@ -106,7 +106,7 @@ func (p *playerSvc) refreshPrimaryNode() {
 	}
 	p.gamePrimary = primary
 	p.primaryConn, p.gamePrimaryClient = ConnectToPlayer(primary)
-	fmt.Println("master is now", p.gamePrimary.GetPlayerId(), p.primaryConn, p.gamePrimaryClient)
+	//fmt.Println("master is now", p.gamePrimary.GetPlayerId(), p.primaryConn, p.gamePrimaryClient)
 }
 
 // contact tracker to report neighbour missing
@@ -229,6 +229,7 @@ func (p *playerSvc) KeyboardListen(closing chan<- struct{}) {
 		log.Println("player first dummy move", resp, err)
 		time.Sleep(time.Millisecond * 500)
 	}
+	p.gameSvc.SyncPlayerStates(resp)
 	reader := bufio.NewScanner(os.Stdin)
 	//fmt.Println(instructions)
 	for reader.Scan() {

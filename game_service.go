@@ -45,6 +45,9 @@ func (s *svc) SyncPlayerStates(resp *MoveResponse) {
 	defer s.rwLock.Unlock()
 
 	s.playerStatesFromServer = resp.GetPlayerStates()
+	if s.gameCopy.GetStateVersion() <= resp.GetCopy().GetStateVersion() {
+		s.gameCopy = resp.GetCopy()
+	}
 	return
 }
 
@@ -71,9 +74,9 @@ func (s *svc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprint(w, backupView.GetViews())
 	} else if s.role == PlayerNode {
-		gameViewComponents.PlayerStates = s.playerStatesFromServer
-		ps := PlayerModeViewGameStates{
-			gridSize:         s.gridSize,
+		gameViewComponents.PlayerStates = s.gameCopy.GetPlayerStates()
+		ps := BackupViewGameStates{
+			Grid:             s.gameCopy.GetGrid(),
 			PlayerStatesView: gameViewComponents,
 		}
 		fmt.Fprint(w, ps.GetViews())
@@ -200,6 +203,7 @@ func (s *svc) MovePlayer(ctx context.Context, req *MoveRequest) (*MoveResponse, 
 	return &MoveResponse{
 		PlayerStates: gs,
 		Status:       MoveResponse_OK,
+		Copy:         s.game.GetSerialisedGameStats(),
 	}, nil
 }
 
